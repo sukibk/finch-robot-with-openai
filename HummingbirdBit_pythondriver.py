@@ -510,7 +510,7 @@ class Hummingbird(Microbit):
 		return distance_value
 
 
-	def getDail(self, port_no):
+	def getDial(self, port_no):
 		response 	  = self.getSensor(port_no)
 		dail_value    = response *DIAL_FACTOR
 		if(dail_value > 100):
@@ -544,18 +544,16 @@ class Hummingbird(Microbit):
 			servo_value_c = 0
 		return servo_value_c
 
-
 	def calculate_servo_r(self,servo_value):
 		
 		if ((servo_value>-10) and (servo_value<10)):
 			servo_value_c = 255
 		elif servo_value>100:
-			servo_value = 100
+			servo_value_c = 100
 		elif servo_value< -100:
-			servo_value = -100
-
-		servo_value_c = int(( servo_value*23 /100) + 122)
-
+			servo_value_c = -100
+		else:
+			servo_value_c = int(( servo_value*23 /100) + 122)
 		return servo_value_c
 
 	

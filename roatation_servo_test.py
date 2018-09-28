@@ -13,12 +13,12 @@ print("-----------------------------------------------------------------")
 
 while(1):
 	bird1.setTriLED(1,100,100,100)
-	bird1.setRotationServo(1,100)
-	bird1.setRotationServo(2,100)
+	bird1.setRotationServo(1,0)
+	bird1.setRotationServo(2,0)
 	time.sleep(1)
 	bird1.setTriLED(1,0,0,0)
-	bird1.setRotationServo(1,-100)
-	bird1.setRotationServo(2,-100)
+	bird1.setRotationServo(1,0)
+	bird1.setRotationServo(2,0)
 	time.sleep(1)
 	current_time    = (int)(time.time() - initial_time) 
 	battery_volatge = bird1.getSensor(4) * 0.0406
