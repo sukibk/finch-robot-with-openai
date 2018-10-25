@@ -194,16 +194,6 @@ class Microbit:
 		return response
 	###############################################################################################################
 	
-	"""Start the print on the microbit LED screen and wait till the printing on the screen is completed"""
-	def printAndWait(self, Print_string):
-		"""Check if the print string is valid to be printed on the screen i.e length of the string is less than 18"""
-		self.check_valid_params_3("print" , Print_string)
-		"""Send the http request"""
-		response = self.send_httprequest_micro("print",Print_string)
-		"""Put the program to inactivity for appropriate time"""
-		time.sleep(len(Print_string)*CHAR_FLASH_TIME*2 +1)
-		return response
-	###############################################################################################################
 	
 	"""Choose a certain LED on the LED Array and switch on/switch off the respective LED"""
 	def setPoint(self, x , y , value):
