@@ -24,7 +24,7 @@ while(1):
     bird1.setRotationServo(2,0)
     time.sleep(1)
     current_time    = (int)(time.time() - initial_time) 
-    battery_volatge = bird1.getSensor(4) * 0.0406
+    battery_volatge = bird1.getSensor(3) * 0.0406
     count = count + 1
     string = str(count) + "\t\t" +(str)(current_time) + "\t\t" + (str)(battery_volatge) 
     print(count , current_time,battery_volatge)
