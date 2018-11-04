@@ -1,1 +1,0 @@
-S.No		current_time		BatteryVolatge1		2		0.02		4		0.0406

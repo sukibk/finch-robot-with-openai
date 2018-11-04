@@ -71,6 +71,7 @@ class Microbit:
 	""" Test requests to find the devices connected""" 
 	base_request_out = "http://127.0.0.1:30061/hummingbird/out"
 	base_request_in  = "http://127.0.0.1:30061/hummingbird/in"
+	stopall          = "http://127.0.0.1:30061/hummingbird/out/stopall"
 	shake_A			 = "http://127.0.0.1:30061/hummingbird/in/orientation/Shake/A"
 	shake_B			 = "http://127.0.0.1:30061/hummingbird/in/orientation/Shake/B"
 	shake_C			 = "http://127.0.0.1:30061/hummingbird/in/orientation/Shake/C"
@@ -121,13 +122,9 @@ class Microbit:
 			else:
 				device.append("None")
 			length = length + 1
-		print("########################################################################################")
-		print("########################################################################################")
 		print ("Device A:  " + device[0])
 		print ("Device B:  " + device[1])
 		print ("Device C:  " + device[2])
-		print("########################################################################################")
-		print("########################################################################################")
 	###############################################################################################################
 		
 	""" Check to see if the input arguments of print statement are valid"""
@@ -150,7 +147,7 @@ class Microbit:
 			sys.exit()
 	###############################################################################################################
 
-	"""Convert a string of 1's and 0's into true and false"""
+	""" Convert a string of 1's and 0's into true and false"""
 	def process_display(self , value):
 		length = 1
 		for letter in value:
@@ -417,9 +414,9 @@ class Microbit:
 		elif(error_code == RGB_PORT_NO_CHECK):
 			print("Error: Please choose a port value between 1-2")
 		elif(error_code == CONNECTION_SERVER_CLOSED):
-			print("Error: Please open the BlueBird Connection App / unnexpected disconnection")
+			print("Error: Please open the BlueBird Connection App / unexpected disconnection")
 		elif(error_code == GARBAGE_VALUE_PORT):
-			print("Error: Please check the input argumnets")
+			print("Error: Please check the input arguments")
 		elif(error_code == PLOT_NOT_VALID):
 			print("Error: Value should be 0/1 , x value 0-4 and y value 0-4")
 		elif(error_code == NO_CONNECTION):
@@ -427,7 +424,7 @@ class Microbit:
 		elif(error_code == SENSOR_PORT_NO_CHECK):
 			print("Error: Please choose a value between 1-3")
 		elif(error_code == NO_BUTTON_NAME):
-			print("Error: Please choose the input argumnets as 'A'or'B'")
+			print("Error: Please choose the input argumnets as 'A' or 'B' ")
 		elif(error_code == SERVO_PORT_NO_CHECK):
 			print("Error: Please choose a port value between 1-4")
 		elif(error_code == BUZZER_NOTE_CHECK):
@@ -448,7 +445,7 @@ class Microbit:
 		elif(warning_code == PRINT_LENGTH_W_CODE):
 			print("Warning: Length of the string should be between 1-18 ")
 		elif(warning_code == RGB_W_VALUE):
-			print("Warning: Please choose RGB intensityvalue between 0-100")
+			print("Warning: Please choose RGB intensity value between 0-100")
 		elif(warning_code == PRINT_DISPLAY_W_CODE):
 			print("Warning: Length of the string should be 25 characters of 0's/1's")
 		print("####################################################################")
@@ -694,7 +691,7 @@ class Hummingbird(Microbit):
 
 	""" Stop all stops the Servos , LED , ORB , LED Array """ 
 	def stopAll(self):		
-		response = 1
+		response = self.send_httprequest_stopAll()
 		return response
 	##################################################################################################################
 
@@ -745,7 +742,8 @@ class Hummingbird(Microbit):
 	##################################################################################################################
 	###########################    SEND HTTP REQUESTS       ##########################################################
 	##################################################################################################################
-	"""Send HTTP requests for hummingbit inputs """
+	
+	"""Send HTTP requests for Hummingbird bit inputs """
 	def send_httprequest_in(self, peri, port):
 		""" Combine diffrenet strings to form a HTTP request """ 
 		http_request = self.base_request_in + "/" + peri    + "/" + str(port) + "/" + str(self.device_s_no) 
@@ -761,10 +759,27 @@ class Hummingbird(Microbit):
 		return int(response)
 	##################################################################################################################
 
-	"""Send HTTP request for hummingbird bit output"""
+	"""Send HTTP request for Hummingbird bit output"""
 	def send_httprequest(self, peri, port , value):
 		""" Combine diffrenet strings to form a HTTP request """ 
 		http_request = self.base_request_out + "/" + peri    + "/" + str(port) +  "/" + str(value)   + "/" + str(self.device_s_no) 
+		try :
+			response_request =  urllib.request.urlopen(http_request)
+		except:
+			self.print_error(CONNECTION_SERVER_CLOSED)
+			sys.exit();
+		if(response_request.read() == b'200'):
+			response = 1
+		else :
+			response = 0
+		return response
+	##################################################################################################################
+
+
+	"""Send HTTP request for hummingbird bit output"""
+	def send_httprequest_stopAll(self):
+		""" Combine diffrenet strings to form a HTTP request """ 
+		http_request = self.stopall
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
@@ -782,7 +797,6 @@ class Hummingbird(Microbit):
 		""" Combine diffrenet strings to form a HTTP request """ 
 		http_request = self.base_request_out + "/" + "playnote" +  "/" + str(note)   + "/" + str(beats)   + "/" + str(self.device_s_no) 
 		try :
-			print(http_request)
 			response_request =  urllib.request.urlopen(http_request)
 		except:
 			self.print_error(CONNECTION_SERVER_CLOSED)
