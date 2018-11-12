@@ -1,7 +1,7 @@
 ###############################################################
 ###############################################################
-# Author                  Raghunath J
-# Last Edit Date          10/24/2018
+# Author                  Raghunath J, revised by Bambi Brewer
+# Last Edit Date          11/12/2018
 # Description             This python file contains Microbit and Hummingbird classes.
 # The Microbit class controls a micro:bit via bluetooth. It includes methods to print on the micro:bit LED array or 
 # set those LEDs individually. It also contains methods to read the values of the micro:bit accelerometer and magnetometer.
@@ -19,43 +19,9 @@ import time
 
 CHAR_FLASH_TIME = 0.3		#Character Flash time
 
-LED_MIN     = 0
-LED_MAX     = 100
-
-RGB_MIN     = 0
-RGB_MAX     = 100
-
-SERVO_P_MIN = 0
-SERVO_P_MAX = 180
-
-SERVO_R_MIN = -100
-SERVO_R_MAX =  100
-
-#Warning Codes
-LED_W_VALUE 	= 1
-SERVO_P_W_VALUE = 2
-SERVO_R_W_VALUE = 3
-PRINT_LENGTH_W_CODE = 4
-PRINT_DISPLAY_W_CODE = 5
-RGB_W_VALUE = 6
-DISPLAY_CHARACTER_WARNING  = 7
-PLOT_NOT_VALID 			 = 8
-
-#Error Codes
-SERVO_PORT_NO_CHECK      = 1
-RGB_PORT_NO_CHECK  		 = 2
-CONNECTION_SERVER_CLOSED = 3
-DISPLAY_LENGTH_ERROR     = 4
-GARBAGE_VALUE_PORT		 = 5
-NO_CONNECTION 			 = 7
-NO_BUTTON_NAME           = 8
-SENSOR_PORT_NO_CHECK     = 9
-LED_PORT_NO_CHECK      	 = 10
-BUZZER_NOTE_CHECK		 = 11 
-BUZZER_BEAT_CHECK		 = 12
-PLOT_VALUE_WARNING		 = 13
-DISPLAY__DEVICE_LETTER_ERROR = 14
-
+# Error strings
+CONNECTION_SERVER_CLOSED = "Error: Request to device failed"
+NO_CONNECTION = "Error: The device is not connected"
 
 #Calculations after receveing the raw values
 DISTANCE_FACTOR          = 117/100
@@ -93,18 +59,25 @@ class Microbit:
 
 	""" Called whenever a class is initialized"""
 	def __init__(self, s_no = 'A'):
-		try: 
-			"""Check if the length of the array to form a symbol is greater than 25"""
-			if('ABC'.find(s_no) != -1):
-				self.device_s_no = s_no
-				self.symbolvalue = [0]*25
-			else:
-				self.stopAll()
-				sys.exit()
-		except:
-			self.print_error(DISPLAY__DEVICE_LETTER_ERROR)
-
+		"""Check if the letter of the device is valid, exit otherwise"""
+		if('ABC'.find(s_no) != -1):
+			self.device_s_no = s_no
+			self.symbolvalue = [0]*25
+		else:
+			print("Error: Device must be A, B, or C.")
+			self.stopAll()
+			sys.exit()
 		
+	# This function checks whether an input parameter is within the given bounds. If not, it prints
+	# a warning and returns a value of the input parameter that is within the required range.
+	# Otherwise, it just returns the initial value.
+	def clampParametersToBounds(self, input, inputMin, inputMax):
+		if ((input < inputMin) or (input > inputMax)):
+			print("Warning: Please choose a parameter between " + str(inputMin) + " and " + str(inputMax))
+			return max(inputMin, min(input, inputMax))
+		else:
+			return input
+
 	###############################################################################################################
 	
 	""" Convert a string of 1's and 0's into true and false"""
@@ -132,13 +105,13 @@ class Microbit:
 		"""Check if LED_string is valid to be printed on the display"""
 		"""Check if the length of the array to form a symbol not equal than 25"""
 		if(len(LEDlist) != 25):
-			self.print_error(DISPLAY_LENGTH_ERROR)
+			print("Error: setDisplay() requires a list of length 25")
 			return 			# if the array is the wrong length, don't want to do anything else
 		
 		"""Check if all the characters entered are valid"""
 		for index in range(0,len(LEDlist)):
 			if (LEDlist[index] != 0) and (LEDlist[index] != 1):
-				self.print_warning(DISPLAY_CHARACTER_WARNING)					# Give a warning
+				print("Warning: setDisplay() requires a list of 1s and 0s")					# Give a warning
 				LEDlist[index] = 1 				# Replace the bad character with '1'
 		
 		# Reset the display status
@@ -156,7 +129,7 @@ class Microbit:
 		
 		"""Check if the print string is valid to be printed on the screen i.e length of the string is less than 18"""
 		if(len(Print_string) > 15):
-			self.print_warning(PRINT_LENGTH_W_CODE)
+			print("Warning: print() requires a String with 15 or fewer characters")
 
 		# Need to replace spaces with %20
 		Print_string = Print_string.replace(' ','%20')
@@ -169,21 +142,14 @@ class Microbit:
 	
 	"""Choose a certain LED on the LED Array and switch on/switch off the respective LED"""
 	def setPoint(self, x , y , value):
-
-		"""Check if x, y and value is valid""" 
-		if ((x > 5) or (x<1) or (y<1) or (y>5)):
-			x = min(5,max(1,x))
-			y = min(5,max(1,y))
-			self.print_warning(PLOT_NOT_VALID)
+		"""Check if x, y and value are valid""" 
+		x = self.clampParametersToBounds(x,1,5)
+		y = self.clampParametersToBounds(y,1,5)
+		value = self.clampParametersToBounds(value,0,1)
 		
 		"""Calculate which LED should be selected"""
 		index = (x-1)*5 + (y-1)
 		
-		# check that the value is valid
-		if (value != 0) and (value != 1):
-			self.print_warning(PLOT_VALUE_WARNING)
-			value = 1								# set all nonzero values to 1
-
 		# Update the state of the LED displayf
 		self.symbolvalue[index] = value
 		
@@ -206,14 +172,11 @@ class Microbit:
 	def getAcceleration(self):
 		dimension = ['X','Y','Z']
 		acc_value = []  
-		try:
-			for i in range(0,3):
-				"""Send HTTP request"""
-				response = self.send_httprequest_micro_in("Accelerometer",dimension[i])
-				acc_value.append(response)
-		except:
-			self.print_error(NO_CONNECTION)
-			sys.exit()
+		for i in range(0,3):
+			"""Send HTTP request"""
+			response = self.send_httprequest_micro_in("Accelerometer",dimension[i])
+			acc_value.append(response)
+		
 		""" Round the value to 2 decimal places """
 		acc_x 	=	round((float(acc_value[0])),3)
 		acc_y 	=	round((float(acc_value[1])),3)
@@ -223,28 +186,23 @@ class Microbit:
 	
 	""" Returns values 0-359 indicating the orentation of the Earth's magnetic field"""  
 	def getCompass(self):
-		try:
-			"""Send HTTP request"""
-			response = self.send_httprequest_micro_in("Compass",None)
-			compass_heading = int(response)
-			return compass_heading
-		except:
-			self.print_error(NO_CONNECTION)
-			sys.exit()
+		"""Send HTTP request"""
+		response = self.send_httprequest_micro_in("Compass",None)
+		compass_heading = int(response)
+		return compass_heading
+		
 	###############################################################################################################
 	
 	"""Return the values of X,Y,Z of a magnetommeter"""
 	def getMagnetometer(self):
 		dimension = ['X','Y','Z']
 		mag_value = []  
-		try:
-			for i in range(0,3):
-				"""Send HTTP request"""
-				response = self.send_httprequest_micro_in("Magnetometer",dimension[i])
-				mag_value.append(response)
-		except:
-			self.print_error(NO_CONNECTION)
-			sys.exit()
+		
+		for i in range(0,3):
+			"""Send HTTP request"""
+			response = self.send_httprequest_micro_in("Magnetometer",dimension[i])
+			mag_value.append(response)
+		
 		mag_x 	=	int(mag_value[0])
 		mag_y 	=	int(mag_value[1])
 		mag_z 	=	int(mag_value[2])
@@ -253,36 +211,30 @@ class Microbit:
 
 	"""Return the status of the button asked """
 	def getButton(self,button_name):
-		try:
-			button_name = button_name.upper()
-			""" Check if the button A and button B are represented in a valid manner"""
-			if((button_name != 'A') and (button_name != 'B')):
-				sys.exit()
-			"""Send HTTP request"""
-			response = self.send_httprequest_micro_in("button", button_name)
-			"""Convert to boolean form"""
-			if(response == "true"):
-				button_value = True
-			else:
-				button_value = False
-		except:
-			self.print_error(NO_BUTTON_NAME)
-			exit()
+		button_name = button_name.upper()
+		""" Check if the button A and button B are represented in a valid manner"""
+		if((button_name != 'A') and (button_name != 'B')):
+			sys.exit()
+		"""Send HTTP request"""
+		response = self.send_httprequest_micro_in("button", button_name)
+		"""Convert to boolean form"""
+		if(response == "true"):
+			button_value = True
+		else:
+			button_value = False
+		
 		return button_value
 	###############################################################################################################
 
 	"""Return the True/False based on the device status of shake """
 	def isShaking(self):
-		try:
-			"""Send HTTP request"""
-			response = self.send_httprequest_micro_in("Shake",None)
-			if(response == "true"):		# convert to boolean
-				shake = True
-			else:
-				shake = False
-		except:
-			self.print_error(NO_CONNECTION)
-			sys.exit()
+		"""Send HTTP request"""
+		response = self.send_httprequest_micro_in("Shake",None)
+		if(response == "true"):		# convert to boolean
+			shake = True
+		else:
+			shake = False
+		
 		return shake
 	###############################################################################################################
 
@@ -290,16 +242,13 @@ class Microbit:
 	def getOrientation(self):
 		orientations = ["Screen%20Up","Screen%20Down","Tilt%20Left","Tilt%20Right","Logo%20Up","Logo%20Down"]
 		orientation_result = ["Screen up","Screen down","Tilt left","Tilt right","Logo up","Logo down"]
-		try:
-			
-			""" Check for orientation of each device and if true return that state """
-			for targetOrientation in orientations:
-				response = self.send_httprequest_micro_in(targetOrientation,None)
-				if(response == "true"):
-					return orientation_result[orientations.index(targetOrientation)]
-		except:
-			self.print_error(NO_CONNECTION)
-			sys.exit()
+		
+		""" Check for orientation of each device and if true return that state """
+		for targetOrientation in orientations:
+			response = self.send_httprequest_micro_in(targetOrientation,None)
+			if(response == "true"):
+				return orientation_result[orientations.index(targetOrientation)]
+		
 		"""If we are in a state in which none of the above seven states are true"""
 		return "In between"
 	###############################################################################################################
@@ -323,7 +272,7 @@ class Microbit:
 			else :
 				response = 0
 		except:
-			self.print_error(CONNECTION_SERVER_CLOSED)
+			print(CONNECTION_SERVER_CLOSED)
 			sys.exit()
 		return response
 	###############################################################################################################
@@ -357,69 +306,14 @@ class Microbit:
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
-			self.print_error(CONNECTION_SERVER_CLOSED)
+			print(CONNECTION_SERVER_CLOSED)
 			sys.exit();
 		response = response_request.read().decode('utf-8')
 		if(response == "Not Connected"):
-			self.print_error(NO_CONNECTION)
+			print(NO_CONNECTION)
 			sys.exit()
 		return response
-	###############################################################################################################
-
-	"""Utility function to print error based on error codes """
-	def print_error(self,error_code):
-		print("**************************************************")
-		if(error_code == LED_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1 and 3")
-		elif(error_code == RGB_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1 and 2")
-		elif(error_code == CONNECTION_SERVER_CLOSED):
-			print("Error: Request to device failed")
-		elif(error_code == GARBAGE_VALUE_PORT):
-			print("Error: Please check the input arguments")
-		elif(error_code == NO_CONNECTION):
-			print("Error: The device is not connected")
-		elif(error_code == SENSOR_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1 and 3")
-		elif(error_code == NO_BUTTON_NAME):
-			print("Error: Please choose button A or B")
-		elif(error_code == SERVO_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1 and 4")
-		elif(error_code == BUZZER_NOTE_CHECK):
-			print("Error: Please choose a note value between 32-135")
-		elif(error_code == BUZZER_BEAT_CHECK):
-			print("Error: Please choose a beat value between 0-16")
-		elif(error_code == DISPLAY_LENGTH_ERROR):
-			print("Error: setDisplay() requires a list of length 25")
-		elif(error_code == DISPLAY__DEVICE_LETTER_ERROR):
-			print("Error: Device must be A, B, or C.")
-		print("**************************************************")
-		"""Utility function to print warnings based on warning codes """
-	###############################################################################################################
-	def print_warning(self,warning_code):
-		print("####################################################################")
-		if(warning_code == LED_W_VALUE):
-			print("Warning: Please choose a value between 0 - 100")
-		elif(warning_code == SERVO_P_W_VALUE):
-			print("Warning: Please choose a value between 0 - 180")
-		elif(warning_code == SERVO_R_W_VALUE):
-			print("Warning: Please choose a value between -100 - 100 ")
-		elif(warning_code == PRINT_LENGTH_W_CODE):
-			print("Warning: Length of the string should be between 1-18 ")
-		elif(warning_code == PLOT_VALUE_WARNING):
-			print("Warning: Please choose an LED value of 0 or 1.")
-		elif(warning_code == RGB_W_VALUE):
-			print("Warning: Please choose RGB intensity value between 0-100")
-		elif(warning_code == DISPLAY_CHARACTER_WARNING):
-			print("Warning: setDisplay() requires a list of 1s and 0s")
-		elif(warning_code == PLOT_NOT_VALID):
-			print("Warning: Please choose row and column values between 1 and 5")
-		print("####################################################################")
-	###############################################################################################################
-	###############################################################################################################
-	###############################################################################################################
-
-
+	
 ##################################################################################################################
 ##################################################################################################################
 
@@ -443,7 +337,7 @@ class Hummingbird(Microbit):
 				self.stopAll()
 				sys.exit()
 		except:
-			self.print_error(DISPLAY__DEVICE_LETTER_ERROR)
+			print("Error: Device must be A, B, or C.")
 
 	#############################################################################################################
 
@@ -454,18 +348,7 @@ class Hummingbird(Microbit):
 			print("Error: Please choose a port value between 1 and " + str(portMax))
 			return False
 		else:
-			return True
-
-	# This function checks whether an input parameter is within the given bounds. If not, it prints
-	# a warning and returns a value of the input parameter that is within the required range.
-	# Otherwise, it just returns the initial value.
-	def clampParametersToBounds(self, input, inputMin, inputMax):
-		if ((input < inputMin) or (input > inputMax)):
-			print("Warning: Please choose a parameter between " + str(inputMin) + " and " + str(inputMax))
-			return max(inputMin, min(input, inputMax))
-		else:
-			return input
-
+			return True	
 	##################################################################################################################
 
 	""" Utility function to covert LED from 0-100 to 0-255"""
@@ -594,16 +477,13 @@ class Hummingbird(Microbit):
 	###########################     HUMMINGBIRD BIT INPUT   ##########################################################
 	##################################################################################################################
 
-	""" Read the value of  the sensor attached to a certain port"""
+	""" Read the value of  the sensor attached to a certain port. If the port is not valid, it 
+	returns -1 """
 	def getSensor(self,port):
-		try:
-			"""Check the port of the sensor selected is within the range of 1-3"""
-			if((port > 3) or (port < 1)):	
-				self.stopAll()
-				sys.exit()
-		except:
-			self.print_error(SENSOR_PORT_NO_CHECK)
-			sys.exit()
+		# Early return if we can't execute the command because the port is invalid
+		if not self.isPortValid(port,3):
+			return -1
+
 		response       = self.send_httprequest_in("sensor",port)
 		return response
 	##################################################################################################################
@@ -613,6 +493,7 @@ class Hummingbird(Microbit):
 		response = self.getSensor(port)
 		light_value    = int(response * LIGHT_FACTOR)
 		return light_value
+
 	##################################################################################################################
 
 	""" Read the value of  the sound sensor attached to a certain port"""
@@ -632,10 +513,10 @@ class Hummingbird(Microbit):
 	""" Read the value of  the dial attached to a certain port"""
 	def getDial(self, port):
 		response 	  = self.getSensor(port)
-		dail_value    = int(response *DIAL_FACTOR)
-		if(dail_value > 100):
-			dail_value = 100
-		return dail_value
+		dial_value    = int(response *DIAL_FACTOR)
+		if(dial_value > 100):
+			dial_value = 100
+		return dial_value
 	##################################################################################################################
 
 
@@ -652,11 +533,11 @@ class Hummingbird(Microbit):
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
-			self.print_error(CONNECTION_SERVER_CLOSED)
+			print(CONNECTION_SERVER_CLOSED)
 			sys.exit();
 		response = response_request.read().decode('utf-8')
 		if(response == "Not Connected"):
-			self.print_error(NO_CONNECTION)
+			print(NO_CONNECTION)
 			sys.exit()
 		return int(response)
 	##################################################################################################################
@@ -668,7 +549,7 @@ class Hummingbird(Microbit):
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
-			self.print_error(CONNECTION_SERVER_CLOSED)
+			print(CONNECTION_SERVER_CLOSED)
 			sys.exit();
 		if(response_request.read() == b'200'):
 			response = 1
@@ -685,7 +566,7 @@ class Hummingbird(Microbit):
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
-			self.print_error(CONNECTION_SERVER_CLOSED)
+			print(CONNECTION_SERVER_CLOSED)
 			sys.exit();
 		if(response_request.read() == b'200'):
 			response = 1
@@ -701,7 +582,7 @@ class Hummingbird(Microbit):
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
-			self.print_error(CONNECTION_SERVER_CLOSED)
+			print(CONNECTION_SERVER_CLOSED)
 			sys.exit();
 		if(response_request.read() == b'200'):
 			response = 1
