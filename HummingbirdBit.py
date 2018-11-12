@@ -1,10 +1,13 @@
 ###############################################################
 ###############################################################
-#Author                  Raghunath J
-#Last Edit Date          10/24/2018
-#Description             This python file contains the driver 
-#						 to interact with BluebirdConnector.
-#						 Link to API -- 
+# Author                  Raghunath J
+# Last Edit Date          10/24/2018
+# Description             This python file contains Microbit and Hummingbird classes.
+# The Microbit class controls a micro:bit via bluetooth. It includes methods to print on the micro:bit LED array or 
+# set those LEDs individually. It also contains methods to read the values of the micro:bit accelerometer and magnetometer.
+# The Hummingbird class extends the Microbit class to incorporate functions to control the inputs and outputs
+# of the Hummingbird Bit. It includes methods to set the values of motors and LEDs, as well
+# as methods to read the values of the sensors.
 ###############################################################
 ###############################################################
 import urllib.request
@@ -35,21 +38,23 @@ SERVO_R_W_VALUE = 3
 PRINT_LENGTH_W_CODE = 4
 PRINT_DISPLAY_W_CODE = 5
 RGB_W_VALUE = 6
-
+DISPLAY_CHARACTER_WARNING  = 7
+PLOT_NOT_VALID 			 = 8
 
 #Error Codes
 SERVO_PORT_NO_CHECK      = 1
 RGB_PORT_NO_CHECK  		 = 2
 CONNECTION_SERVER_CLOSED = 3
-GARBAGE_VALUE_PORT       = 4
-PRINT_DISPLAY_E_CODE 	 = 5
-PLOT_NOT_VALID 			 = 6
+DISPLAY_LENGTH_ERROR     = 4
+GARBAGE_VALUE_PORT		 = 5
 NO_CONNECTION 			 = 7
 NO_BUTTON_NAME           = 8
 SENSOR_PORT_NO_CHECK     = 9
 LED_PORT_NO_CHECK      	 = 10
 BUZZER_NOTE_CHECK		 = 11 
 BUZZER_BEAT_CHECK		 = 12
+PLOT_VALUE_WARNING		 = 13
+DISPLAY__DEVICE_LETTER_ERROR = 14
 
 
 #Calculations after receveing the raw values
@@ -63,7 +68,7 @@ TEMPO 					 = 60
 ###############################################################
 
 #Microbit Class includes the control of the outputs and inputs
-#present on the microbit.
+#present on the micro:bit.
 
 ##############################################################
 ###############################################################
@@ -88,80 +93,31 @@ class Microbit:
 
 	""" Called whenever a class is initialized"""
 	def __init__(self, s_no = 'A'):
-		self.PrintDevices()
-		self.device_s_no = s_no
-	###############################################################################################################
-
-	""" Prints the type of the device which you are connected , very useful to know what 
-		device you are connected to"""
-	def PrintDevices(self):
-		response_request_micro 	= []
-		response_request_bit 	= []
-		device = []
-		output = urllib.request.urlopen(self.shake_A) 
-		response_request_micro.append(output.read().decode('utf-8'))
-		output = urllib.request.urlopen(self.shake_B)
-		response_request_micro.append(output.read().decode('utf-8'))
-		output = urllib.request.urlopen(self.shake_C)
-		response_request_micro.append(output.read().decode('utf-8'))
-		output = urllib.request.urlopen(self.sensor4_A)
-		response_request_bit.append(output.read().decode('utf-8'))
-		output = urllib.request.urlopen(self.sensor4_B)
-		response_request_bit.append(output.read().decode('utf-8'))
-		output = urllib.request.urlopen(self.sensor4_C)
-		response_request_bit.append(output.read().decode('utf-8'))
-		
-		length = 0
-		#Based on the sensor 4 value we can say whether device connected is a Micro Bit or a HUmmingbird Bit 
-		for i in response_request_micro:
-			if(i != "Not Connected"):
-				if(response_request_bit[length] != "255"):
-					device.append("Hummingbird Bit")
-				else:
-					device.append("micro:bit")
+		try: 
+			"""Check if the length of the array to form a symbol is greater than 25"""
+			if('ABC'.find(s_no) != -1):
+				self.device_s_no = s_no
+				self.symbolvalue = [0]*25
 			else:
-				device.append("None")
-			length = length + 1
-		print ("Device A:  " + device[0])
-		print ("Device B:  " + device[1])
-		print ("Device C:  " + device[2])
-	###############################################################################################################
-		
-	""" Check to see if the input arguments of print statement are valid"""
-	def check_valid_params_3(self,peri , string_value):
-		try:
-			if(peri == "print"):
-				"""Check if the length of the LED Array is greater than 18"""
-				if( len(string_value) > 18):
-					self.print_warning(PRINT_LENGTH_W_CODE)
-			else:
-				"""Check if the length of the array to form a symbol is greater than 25"""
-				if(len(string_value) != 25):
-					self.print_warning(PRINT_DISPLAY_W_CODE)
-				for letter in string_value:
-					"""Check if all the 25 characters entered are valid"""
-					if ((letter != '0') and (letter != '1')):
-						sys.exit();
+				self.stopAll()
+				sys.exit()
 		except:
-			self.print_error(GARBAGE_VALUE_PORT)
-			sys.exit()
-	###############################################################################################################
+			self.print_error(DISPLAY__DEVICE_LETTER_ERROR)
 
+		
+	###############################################################################################################
+	
 	""" Convert a string of 1's and 0's into true and false"""
 	def process_display(self , value):
-		length = 1
+		new_str = ""
 		for letter in value:
-			if(length == 1):
-				if(letter == '1'):
-					new_str = "true"
-				else:
-					new_str = "false"
-			elif(length < 26):
-				if(letter == '1'):
-					new_str += "/true"
-				else :
-					new_str += "/false"
-			length = length + 1
+			if(letter == 0):
+				new_str += "false/"
+			else:					#All nonzero values become true
+				new_str += "true/"
+		
+		# Remove the last character in a string
+		new_str = new_str[:len(new_str)-1]
 		return new_str
 	###############################################################################################################
 	###############################################################################################################
@@ -171,21 +127,40 @@ class Microbit:
 	###############################################################################################################
 	#######################     OUTPUTS MICRO BIT #################################################################
 	############################################################################################################### 
-	""" Set Display of the LED Array on microbit  with the given input LED_string """
-	def setDisplay(self, LED_string):
+	""" Set Display of the LED Array on microbit  with the given input LED list of 0's and 1's """
+	def setDisplay(self, LEDlist):
 		"""Check if LED_string is valid to be printed on the display"""
-		self.check_valid_params_3("Display" , LED_string)
-		"""Convert the LED_string to  an appropriate value which the server can understad"""
-		LED_string_c = self.process_display(LED_string)
+		"""Check if the length of the array to form a symbol not equal than 25"""
+		if(len(LEDlist) != 25):
+			self.print_error(DISPLAY_LENGTH_ERROR)
+			return 			# if the array is the wrong length, don't want to do anything else
+		
+		"""Check if all the characters entered are valid"""
+		for index in range(0,len(LEDlist)):
+			if (LEDlist[index] != 0) and (LEDlist[index] != 1):
+				self.print_warning(DISPLAY_CHARACTER_WARNING)					# Give a warning
+				LEDlist[index] = 1 				# Replace the bad character with '1'
+		
+		# Reset the display status
+		self.symbolvalue = LEDlist
+
+		"""Convert the LED_list to  an appropriate value which the server can understand"""
+		LED_string = self.process_display(LEDlist)
 		"""Send the http request"""
-		response = self.send_httprequest_micro("symbol",LED_string_c)
+		response = self.send_httprequest_micro("symbol",LED_string)
 		return response
     ###############################################################################################################
 
 	"""Print the characters on the LED screen  """
 	def print(self, Print_string):
+		
 		"""Check if the print string is valid to be printed on the screen i.e length of the string is less than 18"""
-		self.check_valid_params_3("print" , Print_string)
+		if(len(Print_string) > 15):
+			self.print_warning(PRINT_LENGTH_W_CODE)
+
+		# Need to replace spaces with %20
+		Print_string = Print_string.replace(' ','%20')
+
 		"""Send the http request"""
 		response = self.send_httprequest_micro("print",Print_string)
 		return response
@@ -194,46 +169,30 @@ class Microbit:
 	
 	"""Choose a certain LED on the LED Array and switch on/switch off the respective LED"""
 	def setPoint(self, x , y , value):
-		value = str(value)
-		new_str = None
+
 		"""Check if x, y and value is valid""" 
-		if((x > 4) or (x<0) or (y<0) or (y>4) or ((value != '0') and (value != '1'))):
-			self.print_error(PLOT_NOT_VALID)
-			sys.exit()
-		else :
-			"""Calculate which LED should be selected"""
-			index = x*5 + y
-			""" Select the LED to be changed and make the others zero if this is the first time other wise use the previous value"""
-			if(self.symbolvalue == None):
-				for i in range(0,25):
-					if(i == index):
-						if(self.symbolvalue == None):
-							self.symbolvalue = value
-						else :
-							self.symbolvalue += value
-					else :
-						if(self.symbolvalue == None):
-							self.symbolvalue = "0"
-						else :
-							self.symbolvalue += "0"
-			else:
-				length = 0
-				new_str = None
-				for i in self.symbolvalue:
-					if(new_str == None):
-						if(index == length):
-							new_str = value
-						else:
-							new_str = i
-					else:
-						if(index == length):
-							new_str += value
-						else:
-							new_str += i
-					length += 1 
-				self.symbolvalue = new_str
-			"""Send to the function which sends the http request"""
-			self.setDisplay(self.symbolvalue)
+		if ((x > 5) or (x<1) or (y<1) or (y>5)):
+			x = min(5,max(1,x))
+			y = min(5,max(1,y))
+			self.print_warning(PLOT_NOT_VALID)
+		
+		"""Calculate which LED should be selected"""
+		index = (x-1)*5 + (y-1)
+		
+		# check that the value is valid
+		if (value != 0) and (value != 1):
+			self.print_warning(PLOT_VALUE_WARNING)
+			value = 1								# set all nonzero values to 1
+
+		# Update the state of the LED displayf
+		self.symbolvalue[index] = value
+		
+		"""Convert the display status to  an appropriate value which the server can understand"""
+		outputString = self.process_display(self.symbolvalue)
+
+		"""Send the http request"""
+		response = self.send_httprequest_micro("symbol",outputString)
+		return response
 	###############################################################################################################
 	###############################################################################################################
 	###############################################################################################################
@@ -317,7 +276,10 @@ class Microbit:
 		try:
 			"""Send HTTP request"""
 			response = self.send_httprequest_micro_in("Shake",None)
-			shake    = response
+			if(response == "true"):		# convert to boolean
+				shake = True
+			else:
+				shake = False
 		except:
 			self.print_error(NO_CONNECTION)
 			sys.exit()
@@ -326,22 +288,20 @@ class Microbit:
 
 	"""Return the orentation of device listed in the orention_result list"""
 	def getOrientation(self):
-		orentation = ["Screen%20Up","Screen%20Down","Tilt%20Left","Tilt%20Right","Logo%20Up","Logo%20Down"]
-		orentation_result = ["ScreenUp","ScreenDown","TiltLeft","TiltRight","LogoUp","LogoDown","Shake"]
+		orientations = ["Screen%20Up","Screen%20Down","Tilt%20Left","Tilt%20Right","Logo%20Up","Logo%20Down"]
+		orientation_result = ["Screen up","Screen down","Tilt left","Tilt right","Logo up","Logo down"]
 		try:
-			response = self.isShaking()
-			if(response == "true"):
-				return orentation_result[6]
+			
 			""" Check for orientation of each device and if true return that state """
-			for i in range(0,6):
-				response = self.send_httprequest_micro_in(orentation[i],None)
+			for targetOrientation in orientations:
+				response = self.send_httprequest_micro_in(targetOrientation,None)
 				if(response == "true"):
-					return orentation_result[i]
+					return orientation_result[orientations.index(targetOrientation)]
 		except:
 			self.print_error(NO_CONNECTION)
 			sys.exit()
 		"""If we are in a state in which none of the above seven states are true"""
-		return "In Between"
+		return "In between"
 	###############################################################################################################
 	###############################################################################################################
 	###############################################################################################################
@@ -410,27 +370,29 @@ class Microbit:
 	def print_error(self,error_code):
 		print("**************************************************")
 		if(error_code == LED_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1-3")
+			print("Error: Please choose a port value between 1 and 3")
 		elif(error_code == RGB_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1-2")
+			print("Error: Please choose a port value between 1 and 2")
 		elif(error_code == CONNECTION_SERVER_CLOSED):
-			print("Error: Please open the BlueBird Connection App / unexpected disconnection")
+			print("Error: Request to device failed")
 		elif(error_code == GARBAGE_VALUE_PORT):
 			print("Error: Please check the input arguments")
-		elif(error_code == PLOT_NOT_VALID):
-			print("Error: Value should be 0/1 , x value 0-4 and y value 0-4")
 		elif(error_code == NO_CONNECTION):
-			print("Error: Please connect the respective device")
+			print("Error: The device is not connected")
 		elif(error_code == SENSOR_PORT_NO_CHECK):
-			print("Error: Please choose a value between 1-3")
+			print("Error: Please choose a port value between 1 and 3")
 		elif(error_code == NO_BUTTON_NAME):
-			print("Error: Please choose the input argumnets as 'A' or 'B' ")
+			print("Error: Please choose button A or B")
 		elif(error_code == SERVO_PORT_NO_CHECK):
-			print("Error: Please choose a port value between 1-4")
+			print("Error: Please choose a port value between 1 and 4")
 		elif(error_code == BUZZER_NOTE_CHECK):
 			print("Error: Please choose a note value between 32-135")
 		elif(error_code == BUZZER_BEAT_CHECK):
 			print("Error: Please choose a beat value between 0-16")
+		elif(error_code == DISPLAY_LENGTH_ERROR):
+			print("Error: setDisplay() requires a list of length 25")
+		elif(error_code == DISPLAY__DEVICE_LETTER_ERROR):
+			print("Error: Device must be A, B, or C.")
 		print("**************************************************")
 		"""Utility function to print warnings based on warning codes """
 	###############################################################################################################
@@ -444,10 +406,14 @@ class Microbit:
 			print("Warning: Please choose a value between -100 - 100 ")
 		elif(warning_code == PRINT_LENGTH_W_CODE):
 			print("Warning: Length of the string should be between 1-18 ")
+		elif(warning_code == PLOT_VALUE_WARNING):
+			print("Warning: Please choose an LED value of 0 or 1.")
 		elif(warning_code == RGB_W_VALUE):
 			print("Warning: Please choose RGB intensity value between 0-100")
-		elif(warning_code == PRINT_DISPLAY_W_CODE):
-			print("Warning: Length of the string should be 25 characters of 0's/1's")
+		elif(warning_code == DISPLAY_CHARACTER_WARNING):
+			print("Warning: setDisplay() requires a list of 1s and 0s")
+		elif(warning_code == PLOT_NOT_VALID):
+			print("Warning: Please choose row and column values between 1 and 5")
 		print("####################################################################")
 	###############################################################################################################
 	###############################################################################################################
@@ -468,133 +434,44 @@ class Hummingbird(Microbit):
 	##############################################################################################################
 	##############################################################################################################
 	def __init__(self , s_no = 'A'):
-		self.PrintDevices()
-		self.device_s_no = s_no
+		try: 
+			"""Check if the length of the array to form a symbol is greater than 25"""
+			if('ABC'.find(s_no) != -1):
+				self.device_s_no = s_no
+				self.symbolvalue = [0]*25
+			else:
+				self.stopAll()
+				sys.exit()
+		except:
+			self.print_error(DISPLAY__DEVICE_LETTER_ERROR)
+
 	#############################################################################################################
 
-	"""  Print the devices that are connected to the Bluebird App  """
-	def print_device_info(self):
-		print(self.device_s_no)
-	############################################################################################################
+	# This function checks whether a port is within the given bounds. It returns a boolean value 
+	# that is either true or false and prints an error if necessary
+	def isPortValid(self, port, portMax):
+		if ((port < 1) or (port > portMax)):
+			print("Error: Please choose a port value between 1 and " + str(portMax))
+			return False
+		else:
+			return True
 
-	"""  Utility function to check if the parameters of LED , servo are valid  """
-	def check_valid_params_1(self ,peri , port , value):
-		if(peri == "LED"):
-			try:
-				"""Check the port of the LED selected is within the range of 1-3"""
-				if((port > 3) or (port < 1)):
-					self.stopAll()
-					sys.exit()
-			except:
-				self.print_error(LED_PORT_NO_CHECK)
-				sys.exit()
-		elif ((peri =="servo_p") or (peri == "servo_r")):
-			try :
-				"""Check the port of the servo selected is within the range of 1-4"""
-				if((port > 4) or (port < 1)):
-					self.stopAll()
-					sys.exit()
-			except:
-				self.print_error(SERVO_PORT_NO_CHECK)
-				sys.exit()	
-		if(peri == "LED" ):
-			try :
-				"""Check the intensity value lies with in the range of LED limits"""
-				if((value < LED_MIN) or (value > LED_MAX)):
-					warning_code = LED_W_VALUE;
-					self.print_warning(warning_code)
-			except:
-				self.print_error(GARBAGE_VALUE_PORT)
-				sys.exit()
+	# This function checks whether an input parameter is within the given bounds. If not, it prints
+	# a warning and returns a value of the input parameter that is within the required range.
+	# Otherwise, it just returns the initial value.
+	def clampParametersToBounds(self, input, inputMin, inputMax):
+		if ((input < inputMin) or (input > inputMax)):
+			print("Warning: Please choose a parameter between " + str(inputMin) + " and " + str(inputMax))
+			return max(inputMin, min(input, inputMax))
+		else:
+			return input
 
-		elif(peri == "servo_p"):
-			try:
-				"""Check the intensity value lies with in the range of position servo limits"""
-				if((value < SERVO_P_MIN) or (value > SERVO_P_MAX)):
-					warning_code = SERVO_P_W_VALUE;
-					self.print_warning(warning_code)
-			except:
-				self.print_error(GARBAGE_VALUE_PORT)
-				sys.exit()
-
-		elif(peri == "servo_r"):
-			try:
-				"""Check the intensity value lies with in the range of roatation servo limits"""
-				if((value < SERVO_R_MIN) or (value > SERVO_R_MAX)):
-					warning_code = SERVO_R_W_VALUE;
-					self.print_warning(warning_code)
-			except:
-				self.print_error(GARBAGE_VALUE_PORT)
-				sys.exit()
-	##################################################################################################################
-
-	"""  Utility function to check if the parameters of RGB  are valid  """
-	def check_valid_params_2(self ,peri , port , value_1 , value_2 , value_3):
-		try:
-			"""Check the port of the RGB selected is within the range of 1-2"""
-			if(peri == "RGB"):
-				if((port > 2) or (port < 1)):
-					self.stopAll()
-					sys.exit()
-		except:
-			self.print_error(RGB_PORT_NO_CHECK)
-			sys.exit()
-
-		"""Check the intensity value lies with in the range of RGB LED limits"""
-		if(((value_1 < RGB_MIN ) or (value_1 > RGB_MAX)) or ((value_2 < RGB_MIN ) or (value_2 > RGB_MAX)) or ((value_3 < RGB_MIN ) or (value_3 > RGB_MAX))) :
-			warning_code = RGB_W_VALUE
-			self.print_warning(warning_code)
-	##################################################################################################################
-		
-	"""  Utility function to check if the parameters of Sensors  are valid  """
-	def check_valid_params_4(self ,peri , port ):
-		try:
-			"""Check the port of the sensor selected is within the range of 1-2"""
-			if(peri == "sensor"):
-				if((port > 3) or (port < 1)):
-					
-					self.stopAll()
-					sys.exit()
-		except:
-			self.print_error(SENSOR_PORT_NO_CHECK)
-			sys.exit()
-	##################################################################################################################
-
-	"""  Utility function to check if the parameters of buzzer are valid  """
-	def check_valid_params_buzzer(self , note , beats ):
-		try:
-			"""Check if the note is within the range"""
-			if((note > 135) or (note < 32)):
-				self.stopAll()
-				sys.exit()
-		except:
-			self.print_error(BUZZER_NOTE_CHECK)
-			sys.exit()
-		try:
-			"""Check if the beat is within the range"""
-			if((beats > 16) or (beats < 0)):
-				self.stopAll()
-				sys.exit()
-		except:
-			self.print_error(BUZZER_BEAT_CHECK)
-			sys.exit()
-	##################################################################################################################
-
-	"""Utiltity function to checkif the intensity of RGB ,LED are in check"""
-	def checkIntensity(self, intensity):
-		if (intensity > 255):
-			intensity = 255
-		elif (intensity < 0):
-			intensity = 0
-		return intensity
 	##################################################################################################################
 
 	""" Utility function to covert LED from 0-100 to 0-255"""
 	def calculate_LED(self,intensity):
-		intensity_c = 0
 		intensity_c = int((intensity * 255) / 100) ;
-		""" If the vlaues are above the limits fix the instensity to maximum value, if less than the minimum value fix the intensity to minimum value"""
-		intensity_c = self.checkIntensity(intensity_c)
+		
 		return intensity_c
 	##################################################################################################################
 
@@ -603,21 +480,14 @@ class Hummingbird(Microbit):
 		r_intensity_c   = int((r_intensity * 255) / 100) ;
 		g_intensity_c   = int((g_intensity * 255) / 100) ;
 		b_intensity_c	= int((b_intensity * 255) / 100) ;
-		""" If the vlaues are above the limits fix the instensity to maximum value, if less than the minimum value fix the intensity to minimum value"""
-		r_intensity_c = self.checkIntensity(r_intensity_c)
-		g_intensity_c = self.checkIntensity(g_intensity_c)
-		b_intensity_c = self.checkIntensity(b_intensity_c)
+		
 		return (r_intensity_c,g_intensity_c,b_intensity_c)
 	##################################################################################################################
 
 	""" Utility function to covert Servo from 0-180 to 0-255"""
 	def calculate_servo_p(self,servo_value):
 		servo_value_c   = int((servo_value * 254)/180) ;
-		""" If the vlaues are above the limits fix the instensity to maximum value, if less than the minimum value fix the intensity to minimum value"""
-		if (servo_value_c > 254):
-			servo_value_c = 254
-		elif (servo_value_c < 0):
-			servo_value_c = 0
+		
 		return servo_value_c
 	##################################################################################################################
 
@@ -626,16 +496,10 @@ class Hummingbird(Microbit):
 		""" If the vlaues are above the limits fix the instensity to maximum value, if less than the minimum value fix the intensity to minimum value"""
 		if ((servo_value>-10) and (servo_value<10)):
 			servo_value_c = 255
-		elif servo_value>100:
-			servo_value_c = 100
-		elif servo_value< -100:
-			servo_value_c = -100
 		else:
 			servo_value_c = int(( servo_value*23 /100) + 122)
 		return servo_value_c
 	##################################################################################################################
-
-	
 
 
 	##################################################################################################################
@@ -644,7 +508,13 @@ class Hummingbird(Microbit):
 
 	"""Set LED  of a certain port requested to a valid intensity"""
 	def setLED(self, port, intensity):
-		self.check_valid_params_1("LED" , port, intensity)
+		# Early return if we can't execute the command because the port is invalid
+		if not self.isPortValid(port,2):
+			return
+
+		"""Check the intensity value lies with in the range of LED limits"""
+		intensity = self.clampParametersToBounds(intensity,0,100)
+
 		"""Change the range from 0-100 to 0-255"""
 		intensity_c = self.calculate_LED(intensity)
 		"""Send HTTP request """
@@ -654,9 +524,18 @@ class Hummingbird(Microbit):
 
 	"""Set TriLED  of a certain port requested to a valid intensity"""
 	def setTriLED(self, port, r_intensity, g_intensity, b_intensity):
-		self.check_valid_params_2("RGB" , port, r_intensity, g_intensity, b_intensity)
+		
+		# Early return if we can't execute the command because the port is invalid
+		if not self.isPortValid(port,2):
+			return
+		
+		"""Check the intensity value lies with in the range of RGB LED limits"""
+		red = self.clampParametersToBounds(r_intensity,0,100)
+		green = self.clampParametersToBounds(g_intensity,0,100)
+		blue = self.clampParametersToBounds(b_intensity,0,100)
+		
 		"""Change the range from 0-100 to 0-255"""
-		(r_intensity_c, g_intensity_c, b_intensity_c) = self.calculate_RGB(r_intensity,g_intensity,b_intensity)
+		(r_intensity_c, g_intensity_c, b_intensity_c) = self.calculate_RGB(red,green,blue)
 		"""Send HTTP request """
 		response = self.send_httprequest("triled" , port , str(r_intensity_c)+ "/" + str(g_intensity_c) +"/" + str(b_intensity_c))
 		return response
@@ -664,7 +543,13 @@ class Hummingbird(Microbit):
 
 	"""Set Position servo of a certain port requested to a valid angle"""
 	def setPositionServo(self, port, angle):
-		self.check_valid_params_1("servo_p" , port, angle)
+		# Early return if we can't execute the command because the port is invalid
+		if not self.isPortValid(port,4):
+			return
+
+		"""Check the angle lies within servo limits"""
+		angle = self.clampParametersToBounds(angle,0,180)
+
 		angle_c = self.calculate_servo_p(angle)
 		"""Send HTTP request """
 		response = self.send_httprequest("servo" , port , angle_c)
@@ -673,7 +558,13 @@ class Hummingbird(Microbit):
 
 	"""Set Rotation servo of a certain port requested to a valid speed"""
 	def setRotationServo(self, port, speed):
-		self.check_valid_params_1("servo_r", port, speed)   
+		# Early return if we can't execute the command because the port is invalid
+		if not self.isPortValid(port,4):
+			return
+
+		"""Check the speed lies within servo limits"""
+		speed = self.clampParametersToBounds(speed,-100,100)
+
 		speed_c  = self.calculate_servo_r(speed)
 		"""Send HTTP request """
 		response = self.send_httprequest("rotation", port, speed_c)
@@ -682,7 +573,11 @@ class Hummingbird(Microbit):
 	
 	""" Make the buzzer play a note for certain number of beats"""
 	def playNote(self, note ,beats ):
-		self.check_valid_params_buzzer(note , beats)
+		
+		### Check that both parameters are within the required bounds
+		note = self.clampParametersToBounds(note,32,135)
+		beats = self.clampParametersToBounds(beats,0,16)
+
 		beats = int(beats * (60000/TEMPO))
 		"""Send HTTP request """
 		response = self.send_httprequest_buzzer(note, beats)
@@ -701,7 +596,14 @@ class Hummingbird(Microbit):
 
 	""" Read the value of  the sensor attached to a certain port"""
 	def getSensor(self,port):
-		self.check_valid_params_4("sensor",port)
+		try:
+			"""Check the port of the sensor selected is within the range of 1-3"""
+			if((port > 3) or (port < 1)):	
+				self.stopAll()
+				sys.exit()
+		except:
+			self.print_error(SENSOR_PORT_NO_CHECK)
+			sys.exit()
 		response       = self.send_httprequest_in("sensor",port)
 		return response
 	##################################################################################################################
@@ -809,44 +711,3 @@ class Hummingbird(Microbit):
 	##################################################################################################################
 	##################################################################################################################
 	##################################################################################################################
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
