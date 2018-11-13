@@ -43,12 +43,6 @@ class Microbit:
 	base_request_out = "http://127.0.0.1:30061/hummingbird/out"
 	base_request_in  = "http://127.0.0.1:30061/hummingbird/in"
 	stopall          = "http://127.0.0.1:30061/hummingbird/out/stopall"
-	shake_A			 = "http://127.0.0.1:30061/hummingbird/in/orientation/Shake/A"
-	shake_B			 = "http://127.0.0.1:30061/hummingbird/in/orientation/Shake/B"
-	shake_C			 = "http://127.0.0.1:30061/hummingbird/in/orientation/Shake/C"
-	sensor4_A        = "http://127.0.0.1:30061/hummingbird/in/sensor/4/A"
-	sensor4_B        = "http://127.0.0.1:30061/hummingbird/in/sensor/4/B"
-	sensor4_C        = "http://127.0.0.1:30061/hummingbird/in/sensor/4/C"
 	
 	symbolvalue      =  None
 
@@ -110,9 +104,7 @@ class Microbit:
 		
 		"""Check if all the characters entered are valid"""
 		for index in range(0,len(LEDlist)):
-			if (LEDlist[index] != 0) and (LEDlist[index] != 1):
-				print("Warning: setDisplay() requires a list of 1s and 0s")					# Give a warning
-				LEDlist[index] = 1 				# Replace the bad character with '1'
+			LEDlist[index] = self.clampParametersToBounds(LEDlist[index],0,1) 
 		
 		# Reset the display status
 		self.symbolvalue = LEDlist
@@ -131,8 +123,16 @@ class Microbit:
 		if(len(Print_string) > 15):
 			print("Warning: print() requires a String with 15 or fewer characters")
 
+		# Warn the user about any special characters - we can mostly only print English characters and digits
+		for letter in Print_string:
+			if not (((letter >= 'a') and (letter <= 'z')) or ((letter >= 'A') and (letter <= 'Z')) or ((letter >= '0') and (letter <= '9')) or (letter == ' ')):
+				print("Warning: Many special characters cannot be printed on the LED display")
+
 		# Need to replace spaces with %20
 		Print_string = Print_string.replace(' ','%20')
+
+		# Empty out the internal representation of the display, since it will be blank when the print ends
+		self.symbolvalue = [0]*25
 
 		"""Send the http request"""
 		response = self.send_httprequest_micro("print",Print_string)
@@ -252,6 +252,13 @@ class Microbit:
 		"""If we are in a state in which none of the above seven states are true"""
 		return "In between"
 	###############################################################################################################
+	""" Stop all stops the Servos , LED , ORB , LED Array """ 
+	def stopAll(self):		
+		response = self.send_httprequest_stopAll()
+		return response
+	##################################################################################################################
+
+
 	###############################################################################################################
 	###############################################################################################################
 
@@ -314,7 +321,25 @@ class Microbit:
 			sys.exit()
 		return response
 	
-##################################################################################################################
+	##################################################################################################################
+
+
+	"""Send HTTP request for hummingbird bit output"""
+	def send_httprequest_stopAll(self):
+		""" Combine diffrenet strings to form a HTTP request """ 
+		http_request = self.stopall + "/" +str(self.device_s_no)
+		try :
+			response_request =  urllib.request.urlopen(http_request)
+		except:
+			print(CONNECTION_SERVER_CLOSED)
+			sys.exit();
+		if(response_request.read() == b'200'):
+			response = 1
+		else :
+			response = 0
+		return response
+	##################################################################################################################
+
 ##################################################################################################################
 
 #Hummingbird Bit Class includes the control of the outputs and inputs
@@ -467,12 +492,7 @@ class Hummingbird(Microbit):
 		return response
 	##################################################################################################################
 
-	""" Stop all stops the Servos , LED , ORB , LED Array """ 
-	def stopAll(self):		
-		response = self.send_httprequest_stopAll()
-		return response
-	##################################################################################################################
-
+	
 	##################################################################################################################
 	###########################     HUMMINGBIRD BIT INPUT   ##########################################################
 	##################################################################################################################
@@ -546,23 +566,6 @@ class Hummingbird(Microbit):
 	def send_httprequest(self, peri, port , value):
 		""" Combine diffrenet strings to form a HTTP request """ 
 		http_request = self.base_request_out + "/" + peri    + "/" + str(port) +  "/" + str(value)   + "/" + str(self.device_s_no) 
-		try :
-			response_request =  urllib.request.urlopen(http_request)
-		except:
-			print(CONNECTION_SERVER_CLOSED)
-			sys.exit();
-		if(response_request.read() == b'200'):
-			response = 1
-		else :
-			response = 0
-		return response
-	##################################################################################################################
-
-
-	"""Send HTTP request for hummingbird bit output"""
-	def send_httprequest_stopAll(self):
-		""" Combine diffrenet strings to form a HTTP request """ 
-		http_request = self.stopall
 		try :
 			response_request =  urllib.request.urlopen(http_request)
 		except:
