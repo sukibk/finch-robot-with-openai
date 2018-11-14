@@ -28,6 +28,7 @@ DISTANCE_FACTOR          = 117/100
 SOUND_FACTOR             = 200/255
 DIAL_FACTOR              = 100/230
 LIGHT_FACTOR             = 100/255
+VOLTAGE_FACTOR			 = 3.3/255
 
 TEMPO 					 = 60
 ###############################################################
@@ -52,10 +53,10 @@ class Microbit:
 	###############################################################################################################
 
 	""" Called whenever a class is initialized"""
-	def __init__(self, s_no = 'A'):
+	def __init__(self, device = 'A'):
 		"""Check if the letter of the device is valid, exit otherwise"""
-		if('ABC'.find(s_no) != -1):
-			self.device_s_no = s_no
+		if('ABC'.find(device) != -1):
+			self.device_s_no = device
 			self.symbolvalue = [0]*25
 		else:
 			print("Error: Device must be A, B, or C.")
@@ -117,25 +118,25 @@ class Microbit:
     ###############################################################################################################
 
 	"""Print the characters on the LED screen  """
-	def print(self, Print_string):
+	def print(self, message):
 		
 		"""Check if the print string is valid to be printed on the screen i.e length of the string is less than 18"""
-		if(len(Print_string) > 15):
+		if(len(message) > 15):
 			print("Warning: print() requires a String with 15 or fewer characters")
 
 		# Warn the user about any special characters - we can mostly only print English characters and digits
-		for letter in Print_string:
+		for letter in message:
 			if not (((letter >= 'a') and (letter <= 'z')) or ((letter >= 'A') and (letter <= 'Z')) or ((letter >= '0') and (letter <= '9')) or (letter == ' ')):
 				print("Warning: Many special characters cannot be printed on the LED display")
 
 		# Need to replace spaces with %20
-		Print_string = Print_string.replace(' ','%20')
+		message = message.replace(' ','%20')
 
 		# Empty out the internal representation of the display, since it will be blank when the print ends
 		self.symbolvalue = [0]*25
 
 		"""Send the http request"""
-		response = self.send_httprequest_micro("print",Print_string)
+		response = self.send_httprequest_micro("print",message)
 		return response
 	###############################################################################################################
 	
@@ -210,13 +211,13 @@ class Microbit:
 	###############################################################################################################
 
 	"""Return the status of the button asked """
-	def getButton(self,button_name):
-		button_name = button_name.upper()
+	def getButton(self,button):
+		button = button.upper()
 		""" Check if the button A and button B are represented in a valid manner"""
-		if((button_name != 'A') and (button_name != 'B')):
+		if((button != 'A') and (button != 'B')):
 			sys.exit()
 		"""Send HTTP request"""
-		response = self.send_httprequest_micro_in("button", button_name)
+		response = self.send_httprequest_micro_in("button", button)
 		"""Convert to boolean form"""
 		if(response == "true"):
 			button_value = True
@@ -352,11 +353,11 @@ class Hummingbird(Microbit):
 	######################  UTILITY FUNCTIONS ####################################################################
 	##############################################################################################################
 	##############################################################################################################
-	def __init__(self , s_no = 'A'):
+	def __init__(self , device = 'A'):
 		try: 
 			"""Check if the length of the array to form a symbol is greater than 25"""
-			if('ABC'.find(s_no) != -1):
-				self.device_s_no = s_no
+			if('ABC'.find(device) != -1):
+				self.device_s_no = device
 				self.symbolvalue = [0]*25
 			else:
 				self.stopAll()
@@ -431,16 +432,16 @@ class Hummingbird(Microbit):
 	##################################################################################################################
 
 	"""Set TriLED  of a certain port requested to a valid intensity"""
-	def setTriLED(self, port, r_intensity, g_intensity, b_intensity):
+	def setTriLED(self, port, redIntensity, greenIntensity, blueIntensity):
 		
 		# Early return if we can't execute the command because the port is invalid
 		if not self.isPortValid(port,2):
 			return
 		
 		"""Check the intensity value lies with in the range of RGB LED limits"""
-		red = self.clampParametersToBounds(r_intensity,0,100)
-		green = self.clampParametersToBounds(g_intensity,0,100)
-		blue = self.clampParametersToBounds(b_intensity,0,100)
+		red = self.clampParametersToBounds(redIntensity,0,100)
+		green = self.clampParametersToBounds(greenIntensity,0,100)
+		blue = self.clampParametersToBounds(blueIntensity,0,100)
 		
 		"""Change the range from 0-100 to 0-255"""
 		(r_intensity_c, g_intensity_c, b_intensity_c) = self.calculate_RGB(red,green,blue)
@@ -480,7 +481,7 @@ class Hummingbird(Microbit):
 	##################################################################################################################
 	
 	""" Make the buzzer play a note for certain number of beats"""
-	def playNote(self, note ,beats ):
+	def playNote(self, note, beats ):
 		
 		### Check that both parameters are within the required bounds
 		note = self.clampParametersToBounds(note,32,135)
@@ -539,6 +540,12 @@ class Hummingbird(Microbit):
 		return dial_value
 	##################################################################################################################
 
+	""" Read the value of  the dial attached to a certain port"""
+	def getVoltage(self, port):
+		response 	  = self.getSensor(port)
+		voltage_value    = response *VOLTAGE_FACTOR
+		return voltage_value
+	##################################################################################################################
 
 
 	
