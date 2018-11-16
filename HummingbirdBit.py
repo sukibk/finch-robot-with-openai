@@ -58,7 +58,13 @@ class Microbit:
 		"""Check if the letter of the device is valid, exit otherwise"""
 		if('ABC'.find(device) != -1):
 			self.device_s_no = device
+			# Check if the device is connected and if it is a micro:bit
 			if not self.isConnectionValid(): 
+				self.stopAll()
+				sys.exit()
+			
+			if not self.isMicrobit():		# it isn't a micro:bit
+				print("Error: Device " + str(self.device_s_no) + " is not a micro:bit")
 				self.stopAll()
 				sys.exit()
 			self.symbolvalue = [0]*25
@@ -68,6 +74,7 @@ class Microbit:
 			sys.exit()
 	
 	
+
 	# This function tests a connection by attempting to read whether or not the micro:bit is shaking. 
     # Return true if the connection is good and false otherwise. 
 	def isConnectionValid(self):
@@ -78,9 +85,29 @@ class Microbit:
 			print(CONNECTION_SERVER_CLOSED)
 			return False
 		response = response_request.read().decode('utf-8')
+
 		if(response == "Not Connected"):
 			print("Error: Device " + str(self.device_s_no) + " is not connected")
 			return False
+		return True
+
+	# This function determines whether or not the device is a Hummingbird
+	def isMicrobit(self):
+		# Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
+		# And some other value for the Hummingbird
+		http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
+		try :
+			response_request =  urllib.request.urlopen(http_request)
+		except:
+			print(CONNECTION_SERVER_CLOSED)
+			return False
+		response = response_request.read().decode('utf-8')
+		
+		if(response == "Not Connected"):
+			print("Error: Device " + str(self.device_s_no) + " is not connected")
+			return False
+		if (response != "255"):
+			return False 			# It is a Hummingbird, not a micro:bit
 		return True
 
 	# This function checks whether an input parameter is within the given bounds. If not, it prints
@@ -374,10 +401,16 @@ class Hummingbird(Microbit):
 	##############################################################################################################
 	##############################################################################################################
 	def __init__(self , device = 'A'):	
+
 		"""Check if the length of the array to form a symbol is greater than 25"""
 		if('ABC'.find(device) != -1):
 			self.device_s_no = device
+			# Check if device is connected and is a hummingbird
 			if not self.isConnectionValid(): 
+				self.stopAll()
+				sys.exit()
+			if not self.isHummingbird():
+				print("Error: Device " + str(self.device_s_no) + " is not a Hummingbird")
 				self.stopAll()
 				sys.exit()
 			self.symbolvalue = [0]*25
@@ -385,7 +418,27 @@ class Hummingbird(Microbit):
 			self.stopAll()
 			sys.exit()
 
+	
+
+	# This function determines whether or not the device is a Hummingbird
+	def isHummingbird(self):
+		# Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
+		# And some other value for the Hummingbird
+		http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
+		try :
+			response_request =  urllib.request.urlopen(http_request)
+		except:
+			print(CONNECTION_SERVER_CLOSED)
+			return False
+		response = response_request.read().decode('utf-8')
 		
+		if(response == "Not Connected"):
+			print("Error: Device " + str(self.device_s_no) + " is not connected")
+			return False
+		if (response == "255"):
+			return False 			# It is a micro:bit
+		return True
+
 	#############################################################################################################
 
 	# This function checks whether a port is within the given bounds. It returns a boolean value 
