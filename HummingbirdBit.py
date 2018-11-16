@@ -51,18 +51,38 @@ class Microbit:
 	###############################################################################################################
 	#######################     UTILITY FUNCTIONS                                ##################################
 	###############################################################################################################
+	
 
 	""" Called whenever a class is initialized"""
 	def __init__(self, device = 'A'):
 		"""Check if the letter of the device is valid, exit otherwise"""
 		if('ABC'.find(device) != -1):
 			self.device_s_no = device
+			if not self.isConnectionValid(): 
+				self.stopAll()
+				sys.exit()
 			self.symbolvalue = [0]*25
 		else:
 			print("Error: Device must be A, B, or C.")
 			self.stopAll()
 			sys.exit()
-		
+	
+	
+	# This function tests a connection by attempting to read whether or not the micro:bit is shaking. 
+    # Return true if the connection is good and false otherwise. 
+	def isConnectionValid(self):
+		http_request = self.base_request_in + "/" + "orientation" + "/" + "Shake" + "/" +str(self.device_s_no)
+		try :
+			response_request =  urllib.request.urlopen(http_request)
+		except:
+			print(CONNECTION_SERVER_CLOSED)
+			return False
+		response = response_request.read().decode('utf-8')
+		if(response == "Not Connected"):
+			print("Error: Device " + str(self.device_s_no) + " is not connected")
+			return False
+		return True
+
 	# This function checks whether an input parameter is within the given bounds. If not, it prints
 	# a warning and returns a value of the input parameter that is within the required range.
 	# Otherwise, it just returns the initial value.
@@ -353,18 +373,19 @@ class Hummingbird(Microbit):
 	######################  UTILITY FUNCTIONS ####################################################################
 	##############################################################################################################
 	##############################################################################################################
-	def __init__(self , device = 'A'):
-		try: 
-			"""Check if the length of the array to form a symbol is greater than 25"""
-			if('ABC'.find(device) != -1):
-				self.device_s_no = device
-				self.symbolvalue = [0]*25
-			else:
+	def __init__(self , device = 'A'):	
+		"""Check if the length of the array to form a symbol is greater than 25"""
+		if('ABC'.find(device) != -1):
+			self.device_s_no = device
+			if not self.isConnectionValid(): 
 				self.stopAll()
 				sys.exit()
-		except:
-			print("Error: Device must be A, B, or C.")
+			self.symbolvalue = [0]*25
+		else:
+			self.stopAll()
+			sys.exit()
 
+		
 	#############################################################################################################
 
 	# This function checks whether a port is within the given bounds. It returns a boolean value 
