@@ -1,11 +1,8 @@
 from HummingbirdBit import Hummingbird, Microbit
 import time
 
-testM = Microbit('A')
-myBird    = Hummingbird('B')
+myBird    = Microbit('A')
 
-#testM.print("q")
-#print(myBird.getLight(1))
 for i in range(0,10):
 	myBird.setLED(1,100)
 	time.sleep(1)

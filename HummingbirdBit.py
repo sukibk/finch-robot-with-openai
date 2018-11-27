@@ -91,7 +91,7 @@ class Microbit:
 			return False
 		return True
 
-	# This function determines whether or not the device is a Hummingbird
+	# This function determines whether or not the device is a micro:bit
 	def isMicrobit(self):
 		# Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
 		# And some other value for the Hummingbird
