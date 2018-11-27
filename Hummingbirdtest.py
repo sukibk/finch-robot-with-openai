@@ -1,7 +1,7 @@
 from HummingbirdBit import Hummingbird, Microbit
 import time
 
-myBird    = Microbit('A')
+myBird    = Hummingbird('A')
 
 for i in range(0,10):
 	myBird.setLED(1,100)
