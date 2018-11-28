@@ -302,6 +302,7 @@ class Microbit:
 	###############################################################################################################
 	""" Stop all stops the Servos , LED , ORB , LED Array """ 
 	def stopAll(self):		
+		time.sleep(0.1)         # Hack to give stopAll() time to act before the end of a program
 		response = self.send_httprequest_stopAll()
 		return response
 	##################################################################################################################
