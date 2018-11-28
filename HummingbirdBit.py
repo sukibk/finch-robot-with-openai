@@ -329,6 +329,7 @@ class Microbit:
 		except:
 			print(CONNECTION_SERVER_CLOSED)
 			sys.exit()
+		time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
 		return response
 	###############################################################################################################
 
@@ -367,6 +368,7 @@ class Microbit:
 		if(response == "Not Connected"):
 			print(NO_CONNECTION)
 			sys.exit()
+		time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
 		return response
 	
 	##################################################################################################################
@@ -385,6 +387,7 @@ class Microbit:
 			response = 1
 		else :
 			response = 0
+		time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
 		return response
 	##################################################################################################################
 
@@ -640,6 +643,7 @@ class Hummingbird(Microbit):
 		if(response == "Not Connected"):
 			print(NO_CONNECTION)
 			sys.exit()
+		time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
 		return int(response)
 	##################################################################################################################
 
@@ -656,6 +660,7 @@ class Hummingbird(Microbit):
 			response = 1
 		else :
 			response = 0
+		time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
 		return response
 	##################################################################################################################
 
@@ -672,6 +677,7 @@ class Hummingbird(Microbit):
 			response = 1
 		else :
 			response = 0
+		time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
 		return response
 	##################################################################################################################
 	##################################################################################################################
