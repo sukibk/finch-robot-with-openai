@@ -1,21 +1,7 @@
-Python driver V 0.0.1 for 
+Python Library for Hummingbird Bit
 
-Written : RaghunathReddy
+Written : RaghunathReddy and Bambi Brewer
 
-Requirements:
-1. Bluebird conenctor 
-2. Python Version > 3.2
+Our Python library allows students to use Python to read sensors and set motors and LEDs with the Hummingbird Bit. To use Python with the Hummingbird Bit, you must connect to the Hummingbird Bit via bluetooth with the BlueBird Connector. 
 
-This is a Beta version python driver for Microbit & Hummingbird bit using the Bluebird Connector.
-
-Instructions to use:
-
-1.After installing thge Bluebird connector , connect to a microbit and hummingbirs
-2.First run the example code to verify that the setup is right.
-
-Open command prompt or any terminal you are using and run the example.
-
-py -3 LED_Array_animations_buttons.py
-
-
-Change the example code to see the things change.
+For more information, see www.birdbraintechnologies.com/hummingbirdbit/python/
