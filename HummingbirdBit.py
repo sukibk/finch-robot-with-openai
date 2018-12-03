@@ -496,7 +496,7 @@ class Hummingbird(Microbit):
 	"""Set LED  of a certain port requested to a valid intensity"""
 	def setLED(self, port, intensity):
 		# Early return if we can't execute the command because the port is invalid
-		if not self.isPortValid(port,2):
+		if not self.isPortValid(port,3):
 			return
 
 		"""Check the intensity value lies with in the range of LED limits"""
