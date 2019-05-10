@@ -167,10 +167,6 @@ class Microbit:
 	"""Print the characters on the LED screen  """
 	def print(self, message):
 		
-		"""Check if the print string is valid to be printed on the screen i.e length of the string is less than 18"""
-		if(len(message) > 15):
-			print("Warning: print() requires a String with 15 or fewer characters")
-
 		# Warn the user about any special characters - we can mostly only print English characters and digits
 		for letter in message:
 			if not (((letter >= 'a') and (letter <= 'z')) or ((letter >= 'A') and (letter <= 'Z')) or ((letter >= '0') and (letter <= '9')) or (letter == ' ')):
