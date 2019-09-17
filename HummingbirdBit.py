@@ -23,12 +23,16 @@ CHAR_FLASH_TIME = 0.3		#Character Flash time
 CONNECTION_SERVER_CLOSED = "Error: Request to device failed"
 NO_CONNECTION = "Error: The device is not connected"
 
-#Calculations after receveing the raw values
+#Calculations after receveing the raw values for Hummingbird
 DISTANCE_FACTOR          = 117/100
 SOUND_FACTOR             = 200/255
 DIAL_FACTOR              = 100/230
-LIGHT_FACTOR             = 100/255
-VOLTAGE_FACTOR			 = 3.3/255
+LIGHT_FACTOR             = 100/255 #also used for Finch
+VOLTAGE_FACTOR			= 3.3/255
+
+#Scaling factors for Finch
+FINCH_DISTANCE = 0.0919
+BATTERY_FACTOR = 0.0406
 
 TEMPO 					 = 60
 ###############################################################
@@ -679,3 +683,326 @@ class Hummingbird(Microbit):
 	##################################################################################################################
 	##################################################################################################################
 	##################################################################################################################
+
+
+
+class Finch(Microbit):
+    """The Finch class includes the control of the outputs and inputs present
+    in the Finch robot. When creating an instance, specify which robot by the
+    device letter used in the BlueBirdConnector device list (A, B, or C)."""
+    
+    def __init__(self , device = 'A'):
+        """Class initializer. """
+
+        if('ABC'.find(device) != -1): #check for valid device letter
+            self.device_s_no = device
+
+            if not self.isConnectionValid():
+                self.__exit("Error: Invalid Connection")
+			
+            if not self.__isFinch():	
+                self.__exit("Error: Device " + str(self.device_s_no) + " is not a Finch")
+
+            self.symbolvalue = [0]*25
+
+        else:
+            self.__exit("Error: Device must be A, B, or C.")
+
+        
+    ######## Finch Utility Functions ########
+
+    def __exit(self, msg):
+        """Print error, shutdown robot, and exit python"""
+        print(msg)
+        self.stopAll()
+        sys.exit()
+
+
+    def __isFinch(self):
+        """Determine whether or not the device is a Finch"""
+
+        ##TODO
+        return True
+
+
+    @staticmethod	
+    def __calculate_RGB(r_intensity, g_intensity, b_intensity):
+        """Utility function to covert RGB LED from 0-100 to 0-255"""
+        r_intensity_c = int((r_intensity * 255) / 100)
+        g_intensity_c = int((g_intensity * 255) / 100)
+        b_intensity_c = int((b_intensity * 255) / 100)
+		
+        return (r_intensity_c, g_intensity_c, b_intensity_c)
+
+
+    @staticmethod
+    def __formatRightLeft(direction):
+        """Utility function to format a selection of right or left for a backend request."""
+        if direction == "R" or direction == "Right" or direction == "right":
+            return "Right"
+        elif direction == "L" or direction == "Left" or direction == "left":
+            return "Left"
+        else:
+            return None
+
+
+    @staticmethod
+    def __formatForwardBackward(direction):
+        """Utility function to format a selection of forward or backward for a backend request."""
+        if direction == "F" or direction == "Forward" or direction == "forward":
+            return "Forward"
+        elif direction == "B" or direction == "Backward" or direction == "backward":
+            return "Backward"
+        else:
+            return None
+
+
+    def __send_httprequest(self, http_request):
+        """Send an HTTP request and return the result."""
+        try :
+            response_request =  urllib.request.urlopen(http_request)
+        except:
+            print(CONNECTION_SERVER_CLOSED)
+            sys.exit();
+
+        response = response_request.read().decode('utf-8')
+        if(response == "Not Connected"):
+            print(NO_CONNECTION)
+            sys.exit()
+
+        time.sleep(0.01)		# Hack to prevent http requests from overloading the BlueBird Connector
+        return response
+
+
+    def __send_httprequest_in(self, peri, port):
+        """Send HTTP requests for Finch inputs.
+        Combine strings to form a HTTP input request.
+        Send the request and return the result as an int.""" 
+        http_request = self.base_request_in + "/" + peri    + "/" + str(port) + "/" + str(self.device_s_no) 
+        response = self.__send_httprequest(http_request)
+        return int(response)
+
+
+    def __send_httprequest_out(self, arg1, arg2, arg3):
+        """Send HTTP request for Finch output.
+        Combine strings to form a HTTP output request.
+        Send the request and return 1 if successful, 0 otherwise."""
+        
+        requestString = "/" + arg1 + "/"
+        if not (arg2 is None):
+                requestString = requestString + str(arg2) + "/"
+        if not (arg3 is None):
+                requestString = requestString + str(arg3) + "/"
+            
+        http_request = self.base_request_out + requestString + str(self.device_s_no) 
+        response = self.__send_httprequest(http_request)
+
+        if(response == "200"):
+                return 1
+        else :
+                return 0
+
+
+    def __send_httprequest_move(self, arg1, arg2, arg3, arg4):
+        """Send HTTP request to move the Finch.
+        Combine strings to form a HTTP output request.
+        Send the request and return 1 if successful, 0 otherwise."""
+        
+        requestString = "/" + arg1 + "/" + str(self.device_s_no) + "/" + str(arg2) + "/"
+        if not (arg3 is None):
+                requestString = requestString + str(arg3) + "/"
+        if not (arg4 is None):
+                requestString = requestString + str(arg4) + "/"
+            
+        http_request = self.base_request_out + requestString
+        response = self.__send_httprequest(http_request)
+
+        if(response == "200"):
+                return 1
+        else :
+                return 0
+
+
+    ######## Finch Output ########
+
+    def __setTriLED(self, port, redIntensity, greenIntensity, blueIntensity):
+        """Set TriLED(s) on the Finch.
+        Port 1 is the beak. Ports 2 to 5 are tail. Specify port "all" to set the whole tail."""
+
+        #Early return if we can't execute the command because the port is invalid
+        if ((not port == "all") and ((port < 1) or (port > 5))):
+                return 0
+
+        #Check the intensity value lies with in the range of RGB LED limits
+        red = self.clampParametersToBounds(redIntensity,0,100)
+        green = self.clampParametersToBounds(greenIntensity,0,100)
+        blue = self.clampParametersToBounds(blueIntensity,0,100)
+		
+        #Change the range from 0-100 to 0-255
+        (red_c, green_c, blue_c) = self.__calculate_RGB(red,green,blue)
+
+        #Send HTTP request
+        intensityString = str(red_c)+ "/" + str(green_c) +"/" + str(blue_c)
+        response = self.__send_httprequest_out("triled", port, intensityString)
+        return response
+	
+    
+    def setBeak(self, redIntensity, greenIntensity, blueIntensity):
+        """Set beak to a valid intensity. Each intensity should be an integer from 0 to 100."""
+		
+        response = self.__setTriLED(1, redIntensity, greenIntensity, blueIntensity)
+        return response
+
+
+    def setTail(self, port, redIntensity, greenIntensity, blueIntensity):
+        """Set tail to a valid intensity. Port can be specified as 1, 2, 3, 4, or all.
+        Each intensity should be an integer from 0 to 100."""
+		
+        #Triled port 1 is the beak. Tail starts counting at 2
+        if not port == "all":
+                port = port + 1
+	
+        response = self.__setTriLED(port, redIntensity, greenIntensity, blueIntensity)
+        return response
+
+    
+    def playNote(self, note, beats):
+        """Make the buzzer play a note for certain number of beats. Note is the midi
+        note number and should be specified as an integer from 32 to 135. Beats can be
+        any number from 0 to 16."""
+	
+        #Check that both parameters are within the required bounds
+        note = self.clampParametersToBounds(note, 32, 135)
+        beats = self.clampParametersToBounds(beats, 0, 16)
+
+        beats = int(beats * (60000/TEMPO))
+	
+        #Send HTTP request
+        response = self.__send_httprequest_out("playnote", note, beats)
+        return response
+
+
+    def setMove(self, direction, distance, speed):
+        """Move the Finch forward or backward for a given distance at a given speed.
+        Direction should be specified as 'F' or 'B' and distance and speed should
+        be given as integers."""
+
+        direction = self.__formatForwardBackward(direction)
+        if direction is None:
+                return 0
+
+        distance = self.clampParametersToBounds(distance, 0, 500)
+        speed =  self.clampParametersToBounds(speed, 0, 100)
+            
+        #Send HTTP request
+        response = self.__send_httprequest_move("move", direction, distance, speed)
+        return response
+
+
+    def setTurn(self, direction, angle, speed):
+        """Turn the Finch right or left to a given angle at a given speed.
+        Direction should be specified as 'R' or 'L' and angle and speed should
+        be given as integers."""
+
+        direction = self.__formatRightLeft(direction)
+        if direction is None:
+                return 0
+
+        angle =  self.clampParametersToBounds(angle, 0, 360)
+        speed =  self.clampParametersToBounds(speed, 0, 100)
+
+        #Send HTTP request
+        response = self.__send_httprequest_move("turn", direction, angle, speed)
+        return response
+
+
+    def setMotors(self, leftSpeed, rightSpeed):
+        """Set the speed of each motor individually. Speed should be in the range
+        of -100 to 100."""
+
+        leftSpeed = self.clampParametersToBounds(leftSpeed, -100, 100)
+        rightSpeed = self.clampParametersToBounds(rightSpeed, -100, 100)
+                 
+        #Send HTTP request
+        response = self.__send_httprequest_move("wheels", leftSpeed, rightSpeed, None)
+        return response
+
+
+    def stop(self):
+        """Stop the Finch motors."""
+
+        #Send HTTP request
+        response = self.__send_httprequest_out("stopFinch", None, None)
+        return response
+
+
+    def resetEncoders(self):
+        """Reset both encoder values to 0."""
+        response = self.__send_httprequest_out("resetEncoders", None, None)
+        return response
+        
+
+    ######## Finch Inputs ########
+
+    def __getSensor(self, sensor, port):
+        """Read the value of the specified sensor. Port should be specified as either 'R'
+        or 'L'. If the port is not valid, returns -1."""
+        
+        #Early return if we can't execute the command because the port is invalid
+        if ((not port == "Left") and (not port == "Right") and (not ((port == "static") and (sensor == "Distance")))):
+                return -1
+
+        response = self.__send_httprequest_in(sensor, port)
+        return response
+
+
+    def getLight(self, direction):
+        """Read the value of the right or left light sensor ('R' or 'L')."""
+        direction = self.__formatRightLeft(direction)
+        if direction is None:
+                return 0
+        
+        response = self.__getSensor("Light", direction)
+        light_value = int(response * LIGHT_FACTOR)
+        return light_value
+
+    
+    def getDistance(self):
+        """Read the value of the distance sensor"""
+        response = self.__getSensor("Distance", "static")
+        distance_value = int(response * FINCH_DISTANCE)
+        return distance_value
+
+
+    def getLine(self, direction):
+        """Read the value of the right or left line sensor ('R' or 'L')."""
+        direction = self.__formatRightLeft(direction)
+        if direction is None:
+                return 0
+        
+        response = self.__getSensor("Line", direction)
+        line_value = int(response)
+        return line_value
+
+    def getEncoder(self, direction):
+        """Read the value of the right or left encoder ('R' or 'L').
+        Values are returned in rotations."""
+        direction = self.__formatRightLeft(direction)
+        if direction is None:
+                return 0
+        
+        response = self.__getSensor("Encoder", direction)
+        print(response)
+        encoder_value = round(response, 2)
+        return encoder_value
+
+
+    def getBattery(self):
+        """Read the finch's battery voltage."""
+        response = self.__getSensor("Battery", "static")
+        battery_value = round(response * BATTERY_FACTOR, 2)
+        return encoder_value
+
+
+    ######## END class Finch ########
+    
