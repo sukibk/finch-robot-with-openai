@@ -2,12 +2,16 @@
 ###############################################################
 # Author                  Raghunath J, revised by Bambi Brewer
 # Last Edit Date          11/12/2018
-# Description             This python file contains Microbit and Hummingbird classes.
-# The Microbit class controls a micro:bit via bluetooth. It includes methods to print on the micro:bit LED array or 
-# set those LEDs individually. It also contains methods to read the values of the micro:bit accelerometer and magnetometer.
-# The Hummingbird class extends the Microbit class to incorporate functions to control the inputs and outputs
-# of the Hummingbird Bit. It includes methods to set the values of motors and LEDs, as well
-# as methods to read the values of the sensors.
+# Description             This python file contains Microbit and
+# Hummingbird classes.
+# The Microbit class controls a micro:bit via bluetooth. It
+# includes methods to print on the micro:bit LED array or set
+# those LEDs individually. It also contains methods to read the
+# values of the micro:bit accelerometer and magnetometer.
+# The Hummingbird class extends the Microbit class to incorporate
+# functions to control the inputs and outputs of the Hummingbird
+# Bit. It includes methods to set the values of motors and LEDs,
+# as well as methods to read the values of the sensors.
 ###############################################################
 ###############################################################
 import urllib.request
@@ -35,16 +39,14 @@ FINCH_DISTANCE = 0.0919
 BATTERY_FACTOR = 0.0406
 
 TEMPO                      = 60
-###############################################################
+
 ###############################################################
 
-#Microbit Class includes the control of the outputs and inputs
-#present on the micro:bit.
-
-##############################################################
-###############################################################
 class Microbit:
-    """ Test requests to find the devices connected""" 
+    """Microbit Class includes the control of the outputs and inputs
+    present on the micro:bit."""
+        
+        #Test requests to find the devices connected
     base_request_out = "http://127.0.0.1:30061/hummingbird/out"
     base_request_in  = "http://127.0.0.1:30061/hummingbird/in"
     stopall          = "http://127.0.0.1:30061/hummingbird/out/stopall"
@@ -52,14 +54,16 @@ class Microbit:
     symbolvalue      =  None
 
 
-    ###############################################################################################################
-    #######################     UTILITY FUNCTIONS                                ##################################
-    ###############################################################################################################
+    ##################################################################################
+    #######################     UTILITY FUNCTIONS      ###############################
+    ##################################################################################
     
 
-    """ Called whenever a class is initialized"""
+    
     def __init__(self, device = 'A'):
-        """Check if the letter of the device is valid, exit otherwise"""
+        """Called when the class is initialized."""
+                
+        #Check if the letter of the device is valid, exit otherwise
         if('ABC'.find(device) != -1):
             self.device_s_no = device
             # Check if the device is connected and if it is a micro:bit
@@ -79,9 +83,12 @@ class Microbit:
     
     
 
-    # This function tests a connection by attempting to read whether or not the micro:bit is shaking. 
-    # Return true if the connection is good and false otherwise. 
+    
     def isConnectionValid(self):
+        """This function tests a connection by attempting to read whether or
+        not the micro:bit is shaking. Return true if the connection is good
+        and false otherwise."""
+                
         http_request = self.base_request_in + "/" + "orientation" + "/" + "Shake" + "/" +str(self.device_s_no)
         try :
             response_request =  urllib.request.urlopen(http_request)
@@ -95,8 +102,10 @@ class Microbit:
             return False
         return True
 
-    # This function determines whether or not the device is a micro:bit
+    
     def isMicrobit(self):
+        """This function determines whether or not the device is a micro:bit."""
+                
         # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
         # And some other value for the Hummingbird
         http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
@@ -114,20 +123,24 @@ class Microbit:
             return False             # It is a Hummingbird, not a micro:bit
         return True
 
-    # This function checks whether an input parameter is within the given bounds. If not, it prints
-    # a warning and returns a value of the input parameter that is within the required range.
-    # Otherwise, it just returns the initial value.
+    
     def clampParametersToBounds(self, input, inputMin, inputMax):
+        """This function checks whether an input parameter is within the
+        given bounds. If not, it prints a warning and returns a value of the
+        input parameter that is within the required range. Otherwise, it
+        just returns the initial value."""
+                
         if ((input < inputMin) or (input > inputMax)):
             print("Warning: Please choose a parameter between " + str(inputMin) + " and " + str(inputMax))
             return max(inputMin, min(input, inputMax))
         else:
             return input
 
-    ###############################################################################################################
     
-    """ Convert a string of 1's and 0's into true and false"""
+    
     def process_display(self , value):
+        """Convert a string of 1's and 0's into true and false."""
+                
         new_str = ""
         for letter in value:
             if(letter == 0):
@@ -138,38 +151,38 @@ class Microbit:
         # Remove the last character in a string
         new_str = new_str[:len(new_str)-1]
         return new_str
-    ###############################################################################################################
-    ###############################################################################################################
-    ###############################################################################################################
 
 
-    ###############################################################################################################
-    #######################     OUTPUTS MICRO BIT #################################################################
-    ############################################################################################################### 
-    """ Set Display of the LED Array on microbit  with the given input LED list of 0's and 1's """
+    ######################################################################
+    #######################  OUTPUTS MICRO BIT ###########################
+    ######################################################################
+    
     def setDisplay(self, LEDlist):
-        """Check if LED_string is valid to be printed on the display"""
-        """Check if the length of the array to form a symbol not equal than 25"""
+        """Set Display of the LED Array on microbit with the given input LED
+        list of 0's and 1's."""
+                
+        #Check if LED_string is valid to be printed on the display
+        #Check if the length of the array to form a symbol not equal than 25
         if(len(LEDlist) != 25):
             print("Error: setDisplay() requires a list of length 25")
             return             # if the array is the wrong length, don't want to do anything else
         
-        """Check if all the characters entered are valid"""
+        #Check if all the characters entered are valid
         for index in range(0,len(LEDlist)):
             LEDlist[index] = self.clampParametersToBounds(LEDlist[index],0,1) 
         
         # Reset the display status
         self.symbolvalue = LEDlist
 
-        """Convert the LED_list to  an appropriate value which the server can understand"""
+        #Convert the LED_list to  an appropriate value which the server can understand
         LED_string = self.process_display(LEDlist)
-        """Send the http request"""
+        #Send the http request
         response = self.send_httprequest_micro("symbol",LED_string)
         return response
-    ###############################################################################################################
-
-    """Print the characters on the LED screen  """
+    
+    
     def print(self, message):
+        """Print the characters on the LED screen."""
         
         # Warn the user about any special characters - we can mostly only print English characters and digits
         for letter in message:
@@ -182,72 +195,75 @@ class Microbit:
         # Empty out the internal representation of the display, since it will be blank when the print ends
         self.symbolvalue = [0]*25
 
-        """Send the http request"""
+        #Send the http request
         response = self.send_httprequest_micro("print",message)
         return response
-    ###############################################################################################################
     
     
-    """Choose a certain LED on the LED Array and switch on/switch off the respective LED"""
+    
     def setPoint(self, x , y , value):
-        """Check if x, y and value are valid""" 
+        """Choose a certain LED on the LED Array and switch it on or off.
+        The value specified should be 1 for on, 0 for off."""
+                
+        #Check if x, y and value are valid
         x = self.clampParametersToBounds(x,1,5)
         y = self.clampParametersToBounds(y,1,5)
         value = self.clampParametersToBounds(value,0,1)
         
-        """Calculate which LED should be selected"""
+        #Calculate which LED should be selected
         index = (x-1)*5 + (y-1)
         
         # Update the state of the LED displayf
         self.symbolvalue[index] = value
         
-        """Convert the display status to  an appropriate value which the server can understand"""
+        #Convert the display status to  an appropriate value which the server can understand
         outputString = self.process_display(self.symbolvalue)
 
-        """Send the http request"""
+        #Send the http request
         response = self.send_httprequest_micro("symbol",outputString)
         return response
-    ###############################################################################################################
-    ###############################################################################################################
-    ###############################################################################################################
 
 
-    ###############################################################################################################
-    ##############################       INPUTS MICROBIT                ###########################################
-    ###############################################################################################################
+    ##############################################################################
+    ############################## INPUTS MICROBIT ###############################
+    ##############################################################################
     
-    """Gives the acceleration of X,Y,Z in m/sec2"""
+    
     def getAcceleration(self):
+        """Gives the acceleration of X,Y,Z in m/sec2."""
+                
         dimension = ['X','Y','Z']
         acc_value = []  
         for i in range(0,3):
-            """Send HTTP request"""
+            #Send HTTP request"""
             response = self.send_httprequest_micro_in("Accelerometer",dimension[i])
             acc_value.append(response)
         
-        """ Round the value to 2 decimal places """
+        #Round the value to 2 decimal places
         acc_x     =    round((float(acc_value[0])),3)
         acc_y     =    round((float(acc_value[1])),3)
         acc_z     =    round((float(acc_value[2])),3)
         return (acc_x,acc_y,acc_z)
-    ###############################################################################################################
     
-    """ Returns values 0-359 indicating the orentation of the Earth's magnetic field"""  
+    
     def getCompass(self):
-        """Send HTTP request"""
+        """Returns values 0-359 indicating the orentation of the Earth's
+        magnetic field."""  
+                
+        #Send HTTP request
         response = self.send_httprequest_micro_in("Compass",None)
         compass_heading = int(response)
         return compass_heading
         
-    ###############################################################################################################
     
-    """Return the values of X,Y,Z of a magnetommeter"""
     def getMagnetometer(self):
+        """Return the values of X,Y,Z of a magnetommeter."""
+                
         dimension = ['X','Y','Z']
         mag_value = []  
         
         for i in range(0,3):
-            """Send HTTP request"""
+            #Send HTTP request
             response = self.send_httprequest_micro_in("Magnetometer",dimension[i])
             mag_value.append(response)
         
@@ -255,28 +271,30 @@ class Microbit:
         mag_y     =    int(mag_value[1])
         mag_z     =    int(mag_value[2])
         return (mag_x,mag_y,mag_z)
-    ###############################################################################################################
 
-    """Return the status of the button asked """
+    
     def getButton(self,button):
+        """Return the status of the button asked. Specify button 'A' or 'B'."""
+                
         button = button.upper()
-        """ Check if the button A and button B are represented in a valid manner"""
+        #Check if the button A and button B are represented in a valid manner
         if((button != 'A') and (button != 'B')):
             sys.exit()
-        """Send HTTP request"""
+        #Send HTTP request
         response = self.send_httprequest_micro_in("button", button)
-        """Convert to boolean form"""
+        #Convert to boolean form
         if(response == "true"):
             button_value = True
         else:
             button_value = False
         
         return button_value
-    ###############################################################################################################
 
-    """Return the True/False based on the device status of shake """
+    
     def isShaking(self):
-        """Send HTTP request"""
+        """Return true if the device is shaking, false otherwise."""
+                
+        #Send HTTP request
         response = self.send_httprequest_micro_in("Shake",None)
         if(response == "true"):        # convert to boolean
             shake = True
@@ -284,39 +302,42 @@ class Microbit:
             shake = False
         
         return shake
-    ###############################################################################################################
 
-    """Return the orentation of device listed in the orention_result list"""
+    
     def getOrientation(self):
+        """Return the orentation of the micro:bit. Options include:
+        "Screen up", "Screen down", "Tilt left", "Tilt right", "Logo up",
+        and "Logo down"."""
+                
         orientations = ["Screen%20Up","Screen%20Down","Tilt%20Left","Tilt%20Right","Logo%20Up","Logo%20Down"]
         orientation_result = ["Screen up","Screen down","Tilt left","Tilt right","Logo up","Logo down"]
         
-        """ Check for orientation of each device and if true return that state """
+        #Check for orientation of each device and if true return that state
         for targetOrientation in orientations:
             response = self.send_httprequest_micro_in(targetOrientation,None)
             if(response == "true"):
                 return orientation_result[orientations.index(targetOrientation)]
         
-        """If we are in a state in which none of the above seven states are true"""
+        #If we are in a state in which none of the above seven states are true"""
         return "In between"
-    ###############################################################################################################
-    """ Stop all stops the Servos , LED , ORB , LED Array """ 
-    def stopAll(self):        
+    
+    
+    def stopAll(self):
+        """Stop all device outputs (ie. Servos, LEDs, LED Array, Motors, etc.)."""
+        
         time.sleep(0.1)         # Hack to give stopAll() time to act before the end of a program
         response = self.send_httprequest_stopAll()
         return response
-    ##################################################################################################################
+    
 
-
-    ###############################################################################################################
-    ###############################################################################################################
-
-    ###############################################################################################################
-    #######################        SEND HTTP REQUESTS               ###############################################
-    ###############################################################################################################
-    """ Utility function to arrange and send the hrrp request for microbit output functions """
+    ##########################################################################
+    ####################### SEND HTTP REQUESTS ###############################
+    ##########################################################################
+    
     def send_httprequest_micro(self, peri , value):
-        """Print command  """
+        """Utility function to arrange and send the http request for microbit output functions."""
+        
+        #Print command
         if(peri == "print"):
             http_request = self.base_request_out + "/" + peri +  "/" + str(value)   + "/" + str(self.device_s_no)
         elif(peri == "symbol"):
@@ -332,10 +353,11 @@ class Microbit:
             sys.exit()
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return response
-    ###############################################################################################################
-
-    """ Utility function to arrange and send the hrrp request for microbit input functions """
+ 
+    
     def send_httprequest_micro_in(self, peri , value):
+        """Utility function to arrange and send the http request for microbit input functions."""
+        
         if(peri == "Accelerometer"):
             http_request = self.base_request_in + "/" + peri +  "/" + str(value)   + "/" + str(self.device_s_no)
         elif(peri == "Compass"):
@@ -359,7 +381,6 @@ class Microbit:
         elif(peri == "Logo%20Down"):
             http_request = self.base_request_in + "/" + "orientation" + "/" + peri + "/" +str(self.device_s_no)
             
-
         try :
             response_request =  urllib.request.urlopen(http_request)
         except:
@@ -371,13 +392,12 @@ class Microbit:
             sys.exit()
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return response
+
     
-    ##################################################################################################################
-
-
-    """Send HTTP request for hummingbird bit output"""
     def send_httprequest_stopAll(self):
-        """ Combine diffrenet strings to form a HTTP request """ 
+        """Send HTTP request for hummingbird bit output."""
+            
+        #Combine diffrenet strings to form a HTTP request
         http_request = self.stopall + "/" +str(self.device_s_no)
         try :
             response_request =  urllib.request.urlopen(http_request)
@@ -390,23 +410,22 @@ class Microbit:
             response = 0
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return response
-    ##################################################################################################################
+    
+    ######## END class Microbit ########
 
-##################################################################################################################
 
-#Hummingbird Bit Class includes the control of the outputs and inputs
-#present on the Hummingbird Bit.
-
-##################################################################################################################
-##################################################################################################################
 class Hummingbird(Microbit):
+    """Hummingbird Bit Class includes the control of the outputs and inputs
+        present on the Hummingbird Bit."""    
 
-    ######################  UTILITY FUNCTIONS ####################################################################
-    ##############################################################################################################
-    ##############################################################################################################
-    def __init__(self , device = 'A'):    
+    ##########################################################################
+    ######################  UTILITY FUNCTIONS ################################
+    ##########################################################################
 
-        """Check if the length of the array to form a symbol is greater than 25"""
+    def __init__(self , device = 'A'):
+        """Class initializer. Specify device letter A, B or C."""
+
+        #Check if the length of the array to form a symbol is greater than 25"""
         if('ABC'.find(device) != -1):
             self.device_s_no = device
             # Check if device is connected and is a hummingbird
@@ -422,10 +441,10 @@ class Hummingbird(Microbit):
             self.stopAll()
             sys.exit()
 
-    
 
-    # This function determines whether or not the device is a Hummingbird
     def isHummingbird(self):
+        """This function determines whether or not the device is a Hummingbird."""
+            
         # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
         # And some other value for the Hummingbird
         http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
@@ -443,197 +462,210 @@ class Hummingbird(Microbit):
             return False             # It is a micro:bit
         return True
 
-    #############################################################################################################
 
-    # This function checks whether a port is within the given bounds. It returns a boolean value 
-    # that is either true or false and prints an error if necessary
     def isPortValid(self, port, portMax):
+        """This function checks whether a port is within the given bounds.
+        It returns a boolean value that is either true or false and prints
+        an error if necessary."""
+        
         if ((port < 1) or (port > portMax)):
             print("Error: Please choose a port value between 1 and " + str(portMax))
             return False
         else:
             return True    
-    ##################################################################################################################
 
-    """ Utility function to covert LED from 0-100 to 0-255"""
+    
     def calculate_LED(self,intensity):
+        """ Utility function to covert LED from 0-100 to 0-255."""
+        
         intensity_c = int((intensity * 255) / 100) ;
         
         return intensity_c
-    ##################################################################################################################
 
-    """ Utility function to covert RGB LED from 0-100 to 0-255"""
+    
     def calculate_RGB(self,r_intensity, g_intensity, b_intensity):
+        """Utility function to covert RGB LED from 0-100 to 0-255."""
+        
         r_intensity_c   = int((r_intensity * 255) / 100) ;
         g_intensity_c   = int((g_intensity * 255) / 100) ;
         b_intensity_c    = int((b_intensity * 255) / 100) ;
         
         return (r_intensity_c,g_intensity_c,b_intensity_c)
-    ##################################################################################################################
 
-    """ Utility function to covert Servo from 0-180 to 0-255"""
+    
     def calculate_servo_p(self,servo_value):
+        """Utility function to covert Servo from 0-180 to 0-255."""
+        
         servo_value_c   = int((servo_value * 254)/180) ;
         
         return servo_value_c
-    ##################################################################################################################
 
-    """ Utility function to covert Servo from -100 - 100 to 0-255"""
+    
     def calculate_servo_r(self,servo_value):
-        """ If the vlaues are above the limits fix the instensity to maximum value, if less than the minimum value fix the intensity to minimum value"""
+        """Utility function to covert Servo from -100 - 100 to 0-255."""
+        
+        #If the vlaues are above the limits fix the instensity to maximum value,
+        #if less than the minimum value fix the intensity to minimum value
         if ((servo_value>-10) and (servo_value<10)):
             servo_value_c = 255
         else:
             servo_value_c = int(( servo_value*23 /100) + 122)
         return servo_value_c
-    ##################################################################################################################
 
 
-    ##################################################################################################################
-    ###########################     HUMMINGBIRD BIT OUTPUT  ##########################################################
-    ##################################################################################################################
+    ##############################################################################
+    ########################### HUMMINGBIRD BIT OUTPUT ###########################
+    ##############################################################################
 
-    """Set LED  of a certain port requested to a valid intensity"""
+    
     def setLED(self, port, intensity):
+        """Set LED  of a certain port requested to a valid intensity."""
+            
         # Early return if we can't execute the command because the port is invalid
         if not self.isPortValid(port,3):
             return
 
-        """Check the intensity value lies with in the range of LED limits"""
+        #Check the intensity value lies with in the range of LED limits
         intensity = self.clampParametersToBounds(intensity,0,100)
 
-        """Change the range from 0-100 to 0-255"""
+        #Change the range from 0-100 to 0-255
         intensity_c = self.calculate_LED(intensity)
-        """Send HTTP request """
+        #Send HTTP request
         response    = self.send_httprequest("led" , port , intensity_c)
         return response
-    ##################################################################################################################
+    
 
-    """Set TriLED  of a certain port requested to a valid intensity"""
+    
     def setTriLED(self, port, redIntensity, greenIntensity, blueIntensity):
+        """Set TriLED  of a certain port requested to a valid intensity."""
         
         # Early return if we can't execute the command because the port is invalid
         if not self.isPortValid(port,2):
             return
         
-        """Check the intensity value lies with in the range of RGB LED limits"""
+        #Check the intensity value lies with in the range of RGB LED limits
         red = self.clampParametersToBounds(redIntensity,0,100)
         green = self.clampParametersToBounds(greenIntensity,0,100)
         blue = self.clampParametersToBounds(blueIntensity,0,100)
         
-        """Change the range from 0-100 to 0-255"""
+        #Change the range from 0-100 to 0-255
         (r_intensity_c, g_intensity_c, b_intensity_c) = self.calculate_RGB(red,green,blue)
-        """Send HTTP request """
+        #Send HTTP request
         response = self.send_httprequest("triled" , port , str(r_intensity_c)+ "/" + str(g_intensity_c) +"/" + str(b_intensity_c))
         return response
-    ##################################################################################################################
 
-    """Set Position servo of a certain port requested to a valid angle"""
+    
     def setPositionServo(self, port, angle):
+        """Set Position servo of a certain port requested to a valid angle."""
+        
         # Early return if we can't execute the command because the port is invalid
         if not self.isPortValid(port,4):
             return
 
-        """Check the angle lies within servo limits"""
+        #Check the angle lies within servo limits
         angle = self.clampParametersToBounds(angle,0,180)
 
         angle_c = self.calculate_servo_p(angle)
-        """Send HTTP request """
+        #Send HTTP request
         response = self.send_httprequest("servo" , port , angle_c)
         return response
-    ##################################################################################################################
 
-    """Set Rotation servo of a certain port requested to a valid speed"""
+    
     def setRotationServo(self, port, speed):
+        """Set Rotation servo of a certain port requested to a valid speed."""
+            
         # Early return if we can't execute the command because the port is invalid
         if not self.isPortValid(port,4):
             return
 
-        """Check the speed lies within servo limits"""
+        #Check the speed lies within servo limits
         speed = self.clampParametersToBounds(speed,-100,100)
 
         speed_c  = self.calculate_servo_r(speed)
-        """Send HTTP request """
+        #Send HTTP request 
         response = self.send_httprequest("rotation", port, speed_c)
         return response
-    ##################################################################################################################
     
-    """ Make the buzzer play a note for certain number of beats"""
+    
     def playNote(self, note, beats ):
+        """Make the buzzer play a note for certain number of beats."""
         
         ### Check that both parameters are within the required bounds
         note = self.clampParametersToBounds(note,32,135)
         beats = self.clampParametersToBounds(beats,0,16)
 
         beats = int(beats * (60000/TEMPO))
-        """Send HTTP request """
+        #Send HTTP request
         response = self.send_httprequest_buzzer(note, beats)
         return response
-    ##################################################################################################################
 
     
-    ##################################################################################################################
-    ###########################     HUMMINGBIRD BIT INPUT   ##########################################################
-    ##################################################################################################################
+    ############################################################################
+    ########################### HUMMINGBIRD BIT INPUT ##########################
+    ############################################################################
 
-    """ Read the value of  the sensor attached to a certain port. If the port is not valid, it 
-    returns -1 """
     def getSensor(self,port):
+        """Read the value of the sensor attached to a certain port.
+        If the port is not valid, it returns -1."""
+            
         # Early return if we can't execute the command because the port is invalid
         if not self.isPortValid(port,3):
             return -1
 
         response       = self.send_httprequest_in("sensor",port)
         return response
-    ##################################################################################################################
-
-    """ Read the value of  the light sensor attached to a certain port"""
+    
+    
     def getLight(self, port):
+        """Read the value of the light sensor attached to a certain port."""
+        
         response = self.getSensor(port)
         light_value    = int(response * LIGHT_FACTOR)
         return light_value
 
-    ##################################################################################################################
-
-    """ Read the value of  the sound sensor attached to a certain port"""
+    
     def getSound(self, port):
+        """Read the value of the sound sensor attached to a certain port."""
+        
         response = self.getSensor(port)
         sound_value    = int(response *SOUND_FACTOR)
         return sound_value
-    ##################################################################################################################
 
-    """ Read the value of  the distance sensor attached to a certain port"""
+    
     def getDistance(self, port):
+        """Read the value of the distance sensor attached to a certain port."""
+        
         response = self.getSensor(port)
         distance_value    = int(response * DISTANCE_FACTOR)
         return distance_value
-    ##################################################################################################################
 
-    """ Read the value of  the dial attached to a certain port"""
+    
     def getDial(self, port):
+        """Read the value of the dial attached to a certain port."""
+        
         response       = self.getSensor(port)
         dial_value    = int(response *DIAL_FACTOR)
         if(dial_value > 100):
             dial_value = 100
         return dial_value
-    ##################################################################################################################
 
-    """ Read the value of  the dial attached to a certain port"""
+    
     def getVoltage(self, port):
+        """Read the value of  the dial attached to a certain port."""
+        
         response       = self.getSensor(port)
         voltage_value    = response *VOLTAGE_FACTOR
         return voltage_value
-    ##################################################################################################################
-
-
     
-    ##################################################################################################################
-    ###########################    SEND HTTP REQUESTS       ##########################################################
-    ##################################################################################################################
     
-    """Send HTTP requests for Hummingbird bit inputs """
+    ###########################################################################
+    ########################### SEND HTTP REQUESTS ############################
+    ###########################################################################
+    
     def send_httprequest_in(self, peri, port):
-        """ Combine diffrenet strings to form a HTTP request """ 
+        """Send HTTP requests for Hummingbird bit inputs."""
+            
+        #Combine different strings to form an HTTP request
         http_request = self.base_request_in + "/" + peri    + "/" + str(port) + "/" + str(self.device_s_no) 
         try :
             response_request =  urllib.request.urlopen(http_request)
@@ -646,11 +678,12 @@ class Hummingbird(Microbit):
             sys.exit()
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return int(response)
-    ##################################################################################################################
 
-    """Send HTTP request for Hummingbird bit output"""
+    
     def send_httprequest(self, peri, port , value):
-        """ Combine diffrenet strings to form a HTTP request """ 
+        """Send HTTP request for Hummingbird bit output"""
+            
+        #Combine different strings to form an HTTP request
         http_request = self.base_request_out + "/" + peri    + "/" + str(port) +  "/" + str(value)   + "/" + str(self.device_s_no) 
         try :
             response_request =  urllib.request.urlopen(http_request)
@@ -663,11 +696,12 @@ class Hummingbird(Microbit):
             response = 0
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return response
-    ##################################################################################################################
 
-    """ Send HTTP request for hummingbird bit buzzer """
+    
     def send_httprequest_buzzer(self, note, beats):
-        """ Combine diffrenet strings to form a HTTP request """ 
+        """Send HTTP request for hummingbird bit buzzer."""
+            
+        #Combine different strings to form an HTTP request
         http_request = self.base_request_out + "/" + "playnote" +  "/" + str(note)   + "/" + str(beats)   + "/" + str(self.device_s_no) 
         try :
             response_request =  urllib.request.urlopen(http_request)
@@ -680,10 +714,8 @@ class Hummingbird(Microbit):
             response = 0
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return response
-    ##################################################################################################################
-    ##################################################################################################################
-    ##################################################################################################################
-
+    
+    ######## END class Hummingbird ########
 
 
 class Finch(Microbit):
