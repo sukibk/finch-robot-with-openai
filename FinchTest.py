@@ -1,4 +1,4 @@
-from HummingbirdBit import Finch
+from BirdBrainBit import Finch
 import time
 
 myFinch = Finch()

@@ -1,4 +1,4 @@
-from HummingbirdBit import Hummingbird, Microbit
+from BirdBrainBit import Hummingbird, Microbit
 import time
 
 myBird    = Hummingbird('A')
