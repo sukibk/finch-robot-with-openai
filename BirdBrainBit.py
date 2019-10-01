@@ -80,10 +80,8 @@ class Microbit:
             print("Error: Device must be A, B, or C.")
             self.stopAll()
             sys.exit()
-    
-    
+        
 
-    
     def isConnectionValid(self):
         """This function tests a connection by attempting to read whether or
         not the micro:bit is shaking. Return true if the connection is good
@@ -105,23 +103,11 @@ class Microbit:
     
     def isMicrobit(self):
         """This function determines whether or not the device is a micro:bit."""
-                
-        # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
-        # And some other value for the Hummingbird
-        http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
-        try :
-            response_request =  urllib.request.urlopen(http_request)
-        except:
-            print(CONNECTION_SERVER_CLOSED)
-            return False
-        response = response_request.read().decode('utf-8')
-        
-        if(response == "Not Connected"):
-            print("Error: Device " + str(self.device_s_no) + " is not connected")
-            return False
-        if (response != "255"):
-            return False             # It is a Hummingbird, not a micro:bit
-        return True
+
+        http_request = self.base_request_in + "/isMicrobit/static/" + str(self.device_s_no) 
+        response = self._send_httprequest(http_request)
+    
+        return (response == 'true')
 
     
     def clampParametersToBounds(self, input, inputMin, inputMax):
@@ -136,7 +122,6 @@ class Microbit:
         else:
             return input
 
-    
     
     def process_display(self , value):
         """Convert a string of 1's and 0's into true and false."""
@@ -333,6 +318,23 @@ class Microbit:
     ##########################################################################
     ####################### SEND HTTP REQUESTS ###############################
     ##########################################################################
+
+    def _send_httprequest(self, http_request):
+        """Send an HTTP request and return the result."""
+        try :
+            response_request =  urllib.request.urlopen(http_request)
+        except:
+            print(CONNECTION_SERVER_CLOSED)
+            sys.exit();
+
+        response = response_request.read().decode('utf-8')
+        if(response == "Not Connected"):
+            print(NO_CONNECTION)
+            sys.exit()
+
+        time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
+        return response
+    
     
     def send_httprequest_micro(self, peri , value):
         """Utility function to arrange and send the http request for microbit output functions."""
@@ -444,24 +446,12 @@ class Hummingbird(Microbit):
 
     def isHummingbird(self):
         """This function determines whether or not the device is a Hummingbird."""
-            
-        # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
-        # And some other value for the Hummingbird
-        http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
-        try :
-            response_request =  urllib.request.urlopen(http_request)
-        except:
-            print(CONNECTION_SERVER_CLOSED)
-            return False
-        response = response_request.read().decode('utf-8')
-        
-        if(response == "Not Connected"):
-            print("Error: Device " + str(self.device_s_no) + " is not connected")
-            return False
-        if (response == "255"):
-            return False             # It is a micro:bit
-        return True
 
+        http_request = self.base_request_in + "/isHummingbird/static/" + str(self.device_s_no) 
+        response = self._send_httprequest(http_request)
+    
+        return (response == 'true')
+            
 
     def isPortValid(self, port, portMax):
         """This function checks whether a port is within the given bounds.
@@ -752,9 +742,10 @@ class Finch(Microbit):
 
     def __isFinch(self):
         """Determine whether or not the device is a Finch"""
-
-        ##TODO
-        return True
+        http_request = self.base_request_in + "/isFinch/static/" + str(self.device_s_no) 
+        response = self._send_httprequest(http_request)
+    
+        return (response == 'true')
 
 
     @staticmethod    
@@ -789,30 +780,13 @@ class Finch(Microbit):
             return None
 
 
-    def __send_httprequest(self, http_request):
-        """Send an HTTP request and return the result."""
-        try :
-            response_request =  urllib.request.urlopen(http_request)
-        except:
-            print(CONNECTION_SERVER_CLOSED)
-            sys.exit();
-
-        response = response_request.read().decode('utf-8')
-        if(response == "Not Connected"):
-            print(NO_CONNECTION)
-            sys.exit()
-
-        time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
-        return response
-
-
     def __send_httprequest_in(self, peri, port):
         """Send HTTP requests for Finch inputs.
         Combine strings to form a HTTP input request.
-        Send the request and return the result as an int.""" 
+        Send the request and return the result as a string.""" 
         http_request = self.base_request_in + "/" + peri    + "/" + str(port) + "/" + str(self.device_s_no) 
-        response = self.__send_httprequest(http_request)
-        return int(response)
+        response = self._send_httprequest(http_request)
+        return response
 
 
     def __send_httprequest_out(self, arg1, arg2, arg3):
@@ -827,7 +801,7 @@ class Finch(Microbit):
                 requestString = requestString + str(arg3) + "/"
             
         http_request = self.base_request_out + requestString + str(self.device_s_no) 
-        response = self.__send_httprequest(http_request)
+        response = self._send_httprequest(http_request)
 
         if(response == "200"):
                 return 1
@@ -847,7 +821,7 @@ class Finch(Microbit):
                 requestString = requestString + str(arg4) + "/"
             
         http_request = self.base_request_out + requestString
-        response = self.__send_httprequest(http_request)
+        response = self._send_httprequest(http_request)
 
         if(response == "200"):
                 return 1
@@ -995,14 +969,14 @@ class Finch(Microbit):
                 return 0
         
         response = self.__getSensor("Light", direction)
-        light_value = int(response * LIGHT_FACTOR)
+        light_value = int(int(response) * LIGHT_FACTOR)
         return light_value
 
     
     def getDistance(self):
         """Read the value of the distance sensor"""
         response = self.__getSensor("Distance", "static")
-        distance_value = int(response * FINCH_DISTANCE)
+        distance_value = int(int(response) * FINCH_DISTANCE)
         return distance_value
 
 
@@ -1024,15 +998,7 @@ class Finch(Microbit):
                 return 0
         
         response = self.__getSensor("Encoder", direction)
-        print(response)
-        encoder_value = round(response, 2)
-        return encoder_value
-
-
-    def getBattery(self):
-        """Read the finch's battery voltage."""
-        response = self.__getSensor("Battery", "static")
-        battery_value = round(response * BATTERY_FACTOR, 2)
+        encoder_value = round(float(response), 2)
         return encoder_value
 
 
