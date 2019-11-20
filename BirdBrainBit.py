@@ -1,9 +1,10 @@
 ###############################################################
 ###############################################################
 # Author                  Raghunath J, revised by Bambi Brewer
-# Last Edit Date          11/12/2018
-# Description             This python file contains Microbit and
-# Hummingbird classes.
+#                         and Kristina Lauwers
+# Last Edit Date          11/20/2019
+# Description             This python file contains Microbit, 
+# Hummingbird, and Finch classes.
 # The Microbit class controls a micro:bit via bluetooth. It
 # includes methods to print on the micro:bit LED array or set
 # those LEDs individually. It also contains methods to read the
@@ -12,6 +13,9 @@
 # functions to control the inputs and outputs of the Hummingbird
 # Bit. It includes methods to set the values of motors and LEDs,
 # as well as methods to read the values of the sensors.
+# The Finch class also extends the Microbit class. This class
+# similarly includes function to control the inputs and outputs
+# of the Finch robot.
 ###############################################################
 ###############################################################
 import urllib.request
@@ -888,6 +892,24 @@ class Finch(Microbit):
         return response
 
 
+    def __moveFinchAndWait(self, motion, direction, length, speed):
+        """Send a command to move the finch and wait until the finch has finished
+        its motion to return. Used by setMove and setTurn."""
+
+        isMoving = self.__send_httprequest_in("finchIsMoving", "static")
+        wasMoving = isMoving
+
+        #Send HTTP request
+        response = self.__send_httprequest_move(motion, direction, length, speed)
+
+        while (not((wasMoving == "true") and (isMoving == "false")) and not(isMoving == "Not Connected")):
+            wasMoving = isMoving
+            time.sleep(0.01)
+            isMoving = self.__send_httprequest_in("finchIsMoving", "static")
+
+        return response
+
+
     def setMove(self, direction, distance, speed):
         """Move the Finch forward or backward for a given distance at a given speed.
         Direction should be specified as 'F' or 'B' and distance and speed should
@@ -899,9 +921,9 @@ class Finch(Microbit):
 
         distance = self.clampParametersToBounds(distance, 0, 500)
         speed =  self.clampParametersToBounds(speed, 0, 100)
-            
-        #Send HTTP request
-        response = self.__send_httprequest_move("move", direction, distance, speed)
+
+        response = self.__moveFinchAndWait("move", direction, distance, speed)
+
         return response
 
 
@@ -917,8 +939,8 @@ class Finch(Microbit):
         angle =  self.clampParametersToBounds(angle, 0, 360)
         speed =  self.clampParametersToBounds(speed, 0, 100)
 
-        #Send HTTP request
-        response = self.__send_httprequest_move("turn", direction, angle, speed)
+        response = self.__moveFinchAndWait("turn", direction, angle, speed)
+
         return response
 
 
@@ -981,13 +1003,15 @@ class Finch(Microbit):
 
 
     def getLine(self, direction):
-        """Read the value of the right or left line sensor ('R' or 'L')."""
+        """Read the value of the right or left line sensor ('R' or 'L').
+        Returns brightness as a value 0-100 where a larger number
+        represents more reflected light."""
         direction = self.__formatRightLeft(direction)
         if direction is None:
                 return 0
         
         response = self.__getSensor("Line", direction)
-        line_value = int(response)
+        line_value = 100 - int(response)
         return line_value
 
     def getEncoder(self, direction):
