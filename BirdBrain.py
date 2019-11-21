@@ -141,7 +141,7 @@ class Microbit:
         new_str = new_str[:len(new_str)-1]
         return new_str
 
-
+        
     ######################################################################
     #######################  OUTPUTS MICRO BIT ###########################
     ######################################################################
@@ -218,21 +218,27 @@ class Microbit:
     ##############################################################################
     
     
+    def _getXYZvalues(self, sensor, intResult):
+        """Return the X, Y, and Z values of the given sensor."""
+        
+        dimension = ['X','Y','Z']
+        values = []  
+        
+        for i in range(0,3):
+            #Send HTTP request
+            response = self.send_httprequest_micro_in(sensor, dimension[i])
+            if intResult:
+                values.append(int(response))
+            else:
+                values.append(round(float(response), 3))
+        
+        return (values[0],values[1],values[2])
+    
+
     def getAcceleration(self):
         """Gives the acceleration of X,Y,Z in m/sec2."""
-                
-        dimension = ['X','Y','Z']
-        acc_value = []  
-        for i in range(0,3):
-            #Send HTTP request"""
-            response = self.send_httprequest_micro_in("Accelerometer",dimension[i])
-            acc_value.append(response)
-        
-        #Round the value to 2 decimal places
-        acc_x     =    round((float(acc_value[0])),3)
-        acc_y     =    round((float(acc_value[1])),3)
-        acc_z     =    round((float(acc_value[2])),3)
-        return (acc_x,acc_y,acc_z)
+
+        return self._getXYZvalues("Accelerometer", False)
     
     
     def getCompass(self):
@@ -243,23 +249,12 @@ class Microbit:
         response = self.send_httprequest_micro_in("Compass",None)
         compass_heading = int(response)
         return compass_heading
-        
+
     
     def getMagnetometer(self):
         """Return the values of X,Y,Z of a magnetommeter."""
-                
-        dimension = ['X','Y','Z']
-        mag_value = []  
-        
-        for i in range(0,3):
-            #Send HTTP request
-            response = self.send_httprequest_micro_in("Magnetometer",dimension[i])
-            mag_value.append(response)
-        
-        mag_x     =    int(mag_value[0])
-        mag_y     =    int(mag_value[1])
-        mag_z     =    int(mag_value[2])
-        return (mag_x,mag_y,mag_z)
+
+        return self._getXYZvalues("Magnetometer", True)
 
     
     def getButton(self,button):
@@ -296,7 +291,7 @@ class Microbit:
     def getOrientation(self):
         """Return the orentation of the micro:bit. Options include:
         "Screen up", "Screen down", "Tilt left", "Tilt right", "Logo up",
-        and "Logo down"."""
+        "Logo down", and "In between"."""
                 
         orientations = ["Screen%20Up","Screen%20Down","Tilt%20Left","Tilt%20Right","Logo%20Up","Logo%20Down"]
         orientation_result = ["Screen up","Screen down","Tilt left","Tilt right","Logo up","Logo down"]
@@ -307,7 +302,7 @@ class Microbit:
             if(response == "true"):
                 return orientation_result[orientations.index(targetOrientation)]
         
-        #If we are in a state in which none of the above seven states are true"""
+        #If we are in a state in which none of the above seven states are true
         return "In between"
     
     
@@ -386,6 +381,8 @@ class Microbit:
             http_request = self.base_request_in + "/" + "orientation" + "/" + peri + "/" +str(self.device_s_no)
         elif(peri == "Logo%20Down"):
             http_request = self.base_request_in + "/" + "orientation" + "/" + peri + "/" +str(self.device_s_no)
+        else:
+            http_request = self.base_request_in + "/" + peri +  "/" + str(value)   + "/" + str(self.device_s_no)
             
         try :
             response_request =  urllib.request.urlopen(http_request)
@@ -765,22 +762,24 @@ class Finch(Microbit):
     @staticmethod
     def __formatRightLeft(direction):
         """Utility function to format a selection of right or left for a backend request."""
-        if direction == "R" or direction == "Right" or direction == "right":
+        if direction == "R" or direction == "r" or direction == "Right" or direction == "right":
             return "Right"
-        elif direction == "L" or direction == "Left" or direction == "left":
+        elif direction == "L" or direction == "l" or direction == "Left" or direction == "left":
             return "Left"
         else:
+            print("Error: Please specify either 'R' or 'L' direction.")
             return None
 
 
     @staticmethod
     def __formatForwardBackward(direction):
         """Utility function to format a selection of forward or backward for a backend request."""
-        if direction == "F" or direction == "Forward" or direction == "forward":
+        if direction == "F" or direction == "f" or direction == "Forward" or direction == "forward":
             return "Forward"
-        elif direction == "B" or direction == "Backward" or direction == "backward":
+        elif direction == "B" or direction == "b" or direction == "Backward" or direction == "backward":
             return "Backward"
         else:
+            print("Error: Please specify either 'F' or 'B' direction.")
             return None
 
 
@@ -945,8 +944,8 @@ class Finch(Microbit):
 
 
     def setMotors(self, leftSpeed, rightSpeed):
-        """Set the speed of each motor individually. Speed should be in the range
-        of -100 to 100."""
+        """Set the speed of each motor individually. Speed should be an integer in
+        the range of -100 to 100."""
 
         leftSpeed = self.clampParametersToBounds(leftSpeed, -100, 100)
         rightSpeed = self.clampParametersToBounds(rightSpeed, -100, 100)
@@ -967,6 +966,10 @@ class Finch(Microbit):
     def resetEncoders(self):
         """Reset both encoder values to 0."""
         response = self.__send_httprequest_out("resetEncoders", None, None)
+
+        #The finch needs a chance to actually reset
+        time.sleep(0.1)
+        
         return response
         
 
@@ -977,7 +980,8 @@ class Finch(Microbit):
         or 'L'. If the port is not valid, returns -1."""
         
         #Early return if we can't execute the command because the port is invalid
-        if ((not port == "Left") and (not port == "Right") and (not ((port == "static") and (sensor == "Distance")))):
+        if ((not sensor == "finchOrientation") and (not port == "Left") and (not port == "Right") and
+            (not ((port == "static") and (sensor == "Distance" or sensor == "finchCompass")))):
                 return -1
 
         response = self.__send_httprequest_in(sensor, port)
@@ -1014,6 +1018,7 @@ class Finch(Microbit):
         line_value = 100 - int(response)
         return line_value
 
+
     def getEncoder(self, direction):
         """Read the value of the right or left encoder ('R' or 'L').
         Values are returned in rotations."""
@@ -1024,6 +1029,50 @@ class Finch(Microbit):
         response = self.__getSensor("Encoder", direction)
         encoder_value = round(float(response), 2)
         return encoder_value
+
+
+    # The following methods override those within the Microbit
+    # class to return values within the Finch reference frame.
+
+    def getAcceleration(self):
+        """Gives the acceleration of X,Y,Z in m/sec2, relative
+        to the Finch's position."""
+
+        return self._getXYZvalues("finchAccel", False)
+    
+    
+    def getCompass(self):
+        """Returns values 0-359 indicating the orentation of the Earth's
+        magnetic field, relative to the Finch's position."""  
+                
+        #Send HTTP request
+        response = self.__getSensor("finchCompass", "static")
+        compass_heading = int(response)
+        return compass_heading
+        
+    
+    def getMagnetometer(self):
+        """Return the values of X,Y,Z of a magnetommeter, relative to the Finch's position."""
+
+        return self._getXYZvalues("finchMag", True)
+
+
+    def getOrientation(self):
+        """Return the orentation of the Finch. Options include:
+        "Beak up", "Beak down", "Tilt left", "Tilt right", "Level",
+        "Upside down", and "In between"."""
+                
+        orientations = ["Beak%20Up","Beak%20Down","Tilt%20Left","Tilt%20Right","Level","Upside%20Down"]
+        orientation_result = ["Beak up","Beak down","Tilt left","Tilt right","Level","Upside down"]
+        
+        #Check for orientation of each device and if true return that state
+        for targetOrientation in orientations:
+            response = self.__getSensor("finchOrientation", targetOrientation)
+            if(response == "true"):
+                return orientation_result[orientations.index(targetOrientation)]
+        
+        #If we are in a state in which none of the above seven states are true
+        return "In between"
 
 
     ######## END class Finch ########
