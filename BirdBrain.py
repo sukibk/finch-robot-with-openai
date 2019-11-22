@@ -783,6 +783,19 @@ class Finch(Microbit):
             return None
 
 
+    @staticmethod
+    def __constrainToInt(number):
+        """Utility function to ensure number is an integer. Will round and cast to int
+        (with warning) if necessary."""
+
+        if not isinstance(number, int):
+            oldNumber = number
+            number = int(round(number))
+            print("Warning: Parameter must be an integer. Using " + str(number) + " instead of " + str(oldNumber) + ".")
+
+        return number
+        
+
     def __send_httprequest_in(self, peri, port):
         """Send HTTP requests for Finch inputs.
         Combine strings to form a HTTP input request.
@@ -884,6 +897,7 @@ class Finch(Microbit):
         note = self.clampParametersToBounds(note, 32, 135)
         beats = self.clampParametersToBounds(beats, 0, 16)
 
+        note = self.__constrainToInt(note)
         beats = int(beats * (60000/TEMPO))
     
         #Send HTTP request
@@ -894,6 +908,9 @@ class Finch(Microbit):
     def __moveFinchAndWait(self, motion, direction, length, speed):
         """Send a command to move the finch and wait until the finch has finished
         its motion to return. Used by setMove and setTurn."""
+
+        length = self.__constrainToInt(length)
+        speed = self.__constrainToInt(speed)
 
         isMoving = self.__send_httprequest_in("finchIsMoving", "static")
         wasMoving = isMoving
@@ -948,7 +965,9 @@ class Finch(Microbit):
         the range of -100 to 100."""
 
         leftSpeed = self.clampParametersToBounds(leftSpeed, -100, 100)
+        leftSpeed = self.__constrainToInt(leftSpeed)
         rightSpeed = self.clampParametersToBounds(rightSpeed, -100, 100)
+        rightSpeed = self.__constrainToInt(rightSpeed)
                  
         #Send HTTP request
         response = self.__send_httprequest_move("wheels", leftSpeed, rightSpeed, None)
