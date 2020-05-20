@@ -915,14 +915,17 @@ class Finch(Microbit):
 
         isMoving = self.__send_httprequest_in("finchIsMoving", "static")
         wasMoving = isMoving
+        commandSendTime = time.time()
+        done = False
 
         #Send HTTP request
         response = self.__send_httprequest_move(motion, direction, length, speed)
 
-        while (not((wasMoving == "true") and (isMoving == "false")) and not(isMoving == "Not Connected")):
+        while (not(done) and not(isMoving == "Not Connected")):
             wasMoving = isMoving
             time.sleep(0.01)
             isMoving = self.__send_httprequest_in("finchIsMoving", "static")
+            done = ((time.time() > commandSendTime + 0.5) or (wasMoving == "true")) and (isMoving == "false")
 
         return response
 
@@ -936,7 +939,7 @@ class Finch(Microbit):
         if direction is None:
                 return 0
 
-        distance = self.clampParametersToBounds(distance, 0, 500)
+        distance = self.clampParametersToBounds(distance, 0, 10000)
         speed =  self.clampParametersToBounds(speed, 0, 100)
 
         response = self.__moveFinchAndWait("move", direction, distance, speed)
@@ -953,7 +956,7 @@ class Finch(Microbit):
         if direction is None:
                 return 0
 
-        angle =  self.clampParametersToBounds(angle, 0, 360)
+        angle =  self.clampParametersToBounds(angle, -360000, 360000)
         speed =  self.clampParametersToBounds(speed, 0, 100)
 
         response = self.__moveFinchAndWait("turn", direction, angle, speed)
@@ -1035,8 +1038,7 @@ class Finch(Microbit):
                 return 0
         
         response = self.__getSensor("Line", direction)
-        line_value = 100 - int(response)
-        return line_value
+        return int(response)
 
 
     def getEncoder(self, direction):
