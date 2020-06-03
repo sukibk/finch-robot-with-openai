@@ -35,7 +35,7 @@ NO_CONNECTION = "Error: The device is not connected"
 DISTANCE_FACTOR          = 117/100
 SOUND_FACTOR             = 200/255
 DIAL_FACTOR              = 100/230
-LIGHT_FACTOR             = 100/255 #also used for Finch
+LIGHT_FACTOR             = 100/255 
 VOLTAGE_FACTOR            = 3.3/255
 
 #Scaling factors for Finch
@@ -1018,8 +1018,7 @@ class Finch(Microbit):
                 return 0
         
         response = self.__getSensor("Light", direction)
-        light_value = int(int(response) * LIGHT_FACTOR)
-        return light_value
+        return int(response)
 
     
     def getDistance(self):
