@@ -939,7 +939,7 @@ class Finch(Microbit):
         if direction is None:
                 return 0
 
-        distance = self.clampParametersToBounds(distance, 0, 10000)
+        distance = self.clampParametersToBounds(distance, -10000, 10000)
         speed =  self.clampParametersToBounds(speed, 0, 100)
 
         response = self.__moveFinchAndWait("move", direction, distance, speed)
@@ -991,7 +991,7 @@ class Finch(Microbit):
         response = self.__send_httprequest_out("resetEncoders", None, None)
 
         #The finch needs a chance to actually reset
-        time.sleep(0.1)
+        time.sleep(0.2)
         
         return response
         
