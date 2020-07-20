@@ -910,9 +910,6 @@ class Finch(Microbit):
         """Send a command to move the finch and wait until the finch has finished
         its motion to return. Used by setMove and setTurn."""
 
-        length = self.__constrainToInt(length)
-        speed = self.__constrainToInt(speed)
-
         isMoving = self.__send_httprequest_in("finchIsMoving", "static")
         wasMoving = isMoving
         commandSendTime = time.time()
@@ -932,8 +929,7 @@ class Finch(Microbit):
 
     def setMove(self, direction, distance, speed):
         """Move the Finch forward or backward for a given distance at a given speed.
-        Direction should be specified as 'F' or 'B' and distance and speed should
-        be given as integers."""
+        Direction should be specified as 'F' or 'B'."""
 
         direction = self.__formatForwardBackward(direction)
         if direction is None:
@@ -949,8 +945,7 @@ class Finch(Microbit):
 
     def setTurn(self, direction, angle, speed):
         """Turn the Finch right or left to a given angle at a given speed.
-        Direction should be specified as 'R' or 'L' and angle and speed should
-        be given as integers."""
+        Direction should be specified as 'R' or 'L'."""
 
         direction = self.__formatRightLeft(direction)
         if direction is None:
@@ -965,13 +960,11 @@ class Finch(Microbit):
 
 
     def setMotors(self, leftSpeed, rightSpeed):
-        """Set the speed of each motor individually. Speed should be an integer in
+        """Set the speed of each motor individually. Speed should be in
         the range of -100 to 100."""
 
         leftSpeed = self.clampParametersToBounds(leftSpeed, -100, 100)
-        leftSpeed = self.__constrainToInt(leftSpeed)
         rightSpeed = self.clampParametersToBounds(rightSpeed, -100, 100)
-        rightSpeed = self.__constrainToInt(rightSpeed)
                  
         #Send HTTP request
         response = self.__send_httprequest_move("wheels", leftSpeed, rightSpeed, None)
