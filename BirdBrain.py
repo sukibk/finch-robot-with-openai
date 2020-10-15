@@ -110,8 +110,17 @@ class Microbit:
 
         http_request = self.base_request_in + "/isMicrobit/static/" + str(self.device_s_no) 
         response = self._send_httprequest(http_request)
-    
-        return (response == 'true')
+
+        # Old versions of BlueBird Connector don't support this request 
+        if (response != "404"):
+            return (response == 'true')
+        else:
+            # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
+            # And some other value for the Hummingbird
+            http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
+            response = self._send_httprequest(http_request)
+
+            return (response == "255")
 
     
     def clampParametersToBounds(self, input, inputMin, inputMax):
@@ -263,6 +272,7 @@ class Microbit:
         button = button.upper()
         #Check if the button A and button B are represented in a valid manner
         if((button != 'A') and (button != 'B')):
+            print("Error: Button must be A or B.")
             sys.exit()
         #Send HTTP request
         response = self.send_httprequest_micro_in("button", button)
@@ -451,8 +461,17 @@ class Hummingbird(Microbit):
 
         http_request = self.base_request_in + "/isHummingbird/static/" + str(self.device_s_no) 
         response = self._send_httprequest(http_request)
-    
-        return (response == 'true')
+
+        # Old versions of BlueBird Connector don't support this request 
+        if (response != "404"):
+            return (response == 'true')
+        else:
+            # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
+            # And some other value for the Hummingbird
+            http_request = self.base_request_in + "/" + "sensor" + "/4/" +str(self.device_s_no)
+            response = self._send_httprequest(http_request)
+
+            return (response != "255")
             
 
     def isPortValid(self, port, portMax):
