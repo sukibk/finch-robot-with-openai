@@ -112,7 +112,7 @@ class Microbit:
         response = self._send_httprequest(http_request)
 
         # Old versions of BlueBird Connector don't support this request 
-        if (response != "404"):
+        if (response != ""):
             return (response == 'true')
         else:
             # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
@@ -463,7 +463,7 @@ class Hummingbird(Microbit):
         response = self._send_httprequest(http_request)
 
         # Old versions of BlueBird Connector don't support this request 
-        if (response != "404"):
+        if (response != ""):
             return (response == 'true')
         else:
             # Try to read sensor 4. The value will be 255 for a micro:bit (there is no sensor 4)
