@@ -1,4 +1,4 @@
-Python Library for Hummingbird Bit
+Python Library for Hummingbird Bit and Finch 2
 
 Written : RaghunathReddy and Bambi Brewer
 
