@@ -39,7 +39,6 @@ LIGHT_FACTOR             = 100/255
 VOLTAGE_FACTOR            = 3.3/255
 
 #Scaling factors for Finch
-FINCH_DISTANCE = 0.0919
 BATTERY_FACTOR = 0.0406
 
 TEMPO                      = 60
@@ -150,6 +149,19 @@ class Microbit:
         new_str = new_str[:len(new_str)-1]
         return new_str
 
+
+    @staticmethod
+    def __constrainToInt(number):
+        """Utility function to ensure number is an integer. Will round and cast to int
+        (with warning) if necessary."""
+
+        if not isinstance(number, int):
+            oldNumber = number
+            number = int(round(number))
+            print("Warning: Parameter must be an integer. Using " + str(number) + " instead of " + str(oldNumber) + ".")
+
+        return number
+
         
     ######################################################################
     #######################  OUTPUTS MICRO BIT ###########################
@@ -222,6 +234,26 @@ class Microbit:
         return response
 
 
+    def playNote(self, note, beats):
+        """Make the buzzer play a note for certain number of beats. Note is the midi
+        note number and should be specified as an integer from 32 to 135. Beats can be
+        any number from 0 to 16."""
+    
+        #Check that both parameters are within the required bounds
+        note = self.clampParametersToBounds(note, 32, 135)
+        beats = self.clampParametersToBounds(beats, 0, 16)
+
+        note = self.__constrainToInt(note)
+        beats = int(beats * (60000/TEMPO))
+    
+        #Send HTTP request
+        #response = self.__send_httprequest_out("playnote", note, beats)
+        http_request = self.base_request_out + "/playnote/" + str(note) + "/" + str(beats) + "/" + str(self.device_s_no)
+        response = self._send_httprequest(http_request)
+        return response
+
+
+
     ##############################################################################
     ############################## INPUTS MICROBIT ###############################
     ##############################################################################
@@ -267,22 +299,43 @@ class Microbit:
 
     
     def getButton(self,button):
-        """Return the status of the button asked. Specify button 'A' or 'B'."""
+        """Return the status of the button asked. Specify button 'A', 'B', or
+        'Logo'. Logo available for V2 micro:bit only."""
                 
         button = button.upper()
         #Check if the button A and button B are represented in a valid manner
-        if((button != 'A') and (button != 'B')):
-            print("Error: Button must be A or B.")
+        if((button != 'A') and (button != 'B') and (button != 'LOGO')):
+            print("Error: Button must be A, B, or Logo.")
             sys.exit()
         #Send HTTP request
         response = self.send_httprequest_micro_in("button", button)
         #Convert to boolean form
         if(response == "true"):
             button_value = True
-        else:
+        elif(response == "false"):
             button_value = False
+        else:
+            print("Error: " + response)
         
         return button_value
+
+
+    def getSound(self):
+        """Return the current sound level as an integer between 1 and 100.
+        Available for V2 micro:bit only."""
+
+        response = self.send_httprequest_micro_in("V2sensor", "Sound")
+
+        return int(response)
+
+
+    def getTemperature(self):
+        """Return the current temperature as an integer in degrees Celcius.
+        Available for V2 micro:bit only."""
+
+        response = self.send_httprequest_micro_in("V2sensor", "Temperature")
+
+        return int(response)
 
     
     def isShaking(self):
@@ -597,18 +650,6 @@ class Hummingbird(Microbit):
         response = self.send_httprequest("rotation", port, speed_c)
         return response
     
-    
-    def playNote(self, note, beats ):
-        """Make the buzzer play a note for certain number of beats."""
-        
-        ### Check that both parameters are within the required bounds
-        note = self.clampParametersToBounds(note,32,135)
-        beats = self.clampParametersToBounds(beats,0,16)
-
-        beats = int(beats * (60000/TEMPO))
-        #Send HTTP request
-        response = self.send_httprequest_buzzer(note, beats)
-        return response
 
     
     ############################################################################
@@ -637,6 +678,9 @@ class Hummingbird(Microbit):
     
     def getSound(self, port):
         """Read the value of the sound sensor attached to a certain port."""
+
+        if port == "microbit" or port == "micro:bit" or port == "Microbit":
+            return Microbit.getSound(self)
         
         response = self.getSensor(port)
         sound_value    = int(response *SOUND_FACTOR)
@@ -708,23 +752,7 @@ class Hummingbird(Microbit):
         time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
         return response
 
-    
-    def send_httprequest_buzzer(self, note, beats):
-        """Send HTTP request for hummingbird bit buzzer."""
-            
-        #Combine different strings to form an HTTP request
-        http_request = self.base_request_out + "/" + "playnote" +  "/" + str(note)   + "/" + str(beats)   + "/" + str(self.device_s_no) 
-        try :
-            response_request =  urllib.request.urlopen(http_request)
-        except:
-            print(CONNECTION_SERVER_CLOSED)
-            sys.exit();
-        if(response_request.read() == b'200'):
-            response = 1
-        else :
-            response = 0
-        time.sleep(0.01)        # Hack to prevent http requests from overloading the BlueBird Connector
-        return response
+
     
     ######## END class Hummingbird ########
 
@@ -801,19 +829,6 @@ class Finch(Microbit):
         else:
             print("Error: Please specify either 'F' or 'B' direction.")
             return None
-
-
-    @staticmethod
-    def __constrainToInt(number):
-        """Utility function to ensure number is an integer. Will round and cast to int
-        (with warning) if necessary."""
-
-        if not isinstance(number, int):
-            oldNumber = number
-            number = int(round(number))
-            print("Warning: Parameter must be an integer. Using " + str(number) + " instead of " + str(oldNumber) + ".")
-
-        return number
         
 
     def __send_httprequest_in(self, peri, port):
@@ -905,23 +920,6 @@ class Finch(Microbit):
                 port = port + 1
     
         response = self.__setTriLED(port, redIntensity, greenIntensity, blueIntensity)
-        return response
-
-    
-    def playNote(self, note, beats):
-        """Make the buzzer play a note for certain number of beats. Note is the midi
-        note number and should be specified as an integer from 32 to 135. Beats can be
-        any number from 0 to 16."""
-    
-        #Check that both parameters are within the required bounds
-        note = self.clampParametersToBounds(note, 32, 135)
-        beats = self.clampParametersToBounds(beats, 0, 16)
-
-        note = self.__constrainToInt(note)
-        beats = int(beats * (60000/TEMPO))
-    
-        #Send HTTP request
-        response = self.__send_httprequest_out("playnote", note, beats)
         return response
 
 
@@ -1036,8 +1034,7 @@ class Finch(Microbit):
     def getDistance(self):
         """Read the value of the distance sensor"""
         response = self.__getSensor("Distance", "static")
-        distance_value = int(int(response) * FINCH_DISTANCE)
-        return distance_value
+        return int(response)
 
 
     def getLine(self, direction):
