@@ -315,7 +315,8 @@ class Microbit:
         elif(response == "false"):
             button_value = False
         else:
-            print("Error: " + response)
+            print("Error in getButton: " + response)
+            sys.exit()
         
         return button_value
 
@@ -326,7 +327,13 @@ class Microbit:
 
         response = self.send_httprequest_micro_in("V2sensor", "Sound")
 
-        return int(response)
+        try:
+            value = int(response)
+        except:
+            print ("Error in getSound: " + response)
+            sys.exit()
+
+        return value
 
 
     def getTemperature(self):
@@ -335,7 +342,13 @@ class Microbit:
 
         response = self.send_httprequest_micro_in("V2sensor", "Temperature")
 
-        return int(response)
+        try:
+            value = int(response)
+        except:
+            print ("Error in getTemperature: " + response)
+            sys.exit()
+
+        return value
 
     
     def isShaking(self):
