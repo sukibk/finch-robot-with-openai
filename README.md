@@ -197,8 +197,8 @@ npm run dev
 <p><strong>Your Name</strong></p>
 
 <ul>
-  <li><strong>Email:</strong> your.email@example.com</li>
-  <li><strong>GitHub:</strong> <a href="https://github.com/your-username">your-username</a></li>
+  <li><strong>Email:</strong> mjsudar21@catawba.edu</li>
+  <li><strong>GitHub:</strong> <a href="https://github.com/sukibk">sukibk</a></li>
 </ul>
 
 <hr />
