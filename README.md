@@ -180,7 +180,7 @@ npm run dev
 
 <h2>Acknowledgments</h2>
 
-<p>This project was developed as part of my final college presentation on <strong>Generative AI and Its Advancements in Uncrewed Systems</strong>. It demonstrates the practical application of AI in robotics by bridging natural language processing and robot control.</p>
+<p>This project was developed as part of my final college presentation on <strong>Advancements in Generative AI and its Potential in Uncrewed Systems</strong>. It demonstrates the practical application of AI in robotics by bridging natural language processing and robot control.</p>
 
 <hr />
 
